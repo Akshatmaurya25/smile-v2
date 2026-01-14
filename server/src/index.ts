@@ -34,6 +34,12 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging
+app.use((req, _res, next) => {
+  console.log(`[Server] ${req.method} ${req.path} from ${req.ip}`);
+  next();
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -75,9 +81,11 @@ const startServer = async () => {
     await prisma.$connect();
     console.log('Connected to database');
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    // Bind to 0.0.0.0 to accept connections from Android emulator
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Google Client ID: ${process.env.GOOGLE_CLIENT_ID?.slice(0, 20)}...`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -27,13 +27,17 @@ const refreshTokenSchema = z.object({
 // POST /api/auth/google - Authenticate with Google
 router.post('/google', async (req, res, next) => {
   try {
+    console.log('[Auth] Google auth request received');
     const { idToken } = googleAuthSchema.parse(req.body);
+    console.log('[Auth] ID token length:', idToken?.length);
 
     // Verify Google token
+    console.log('[Auth] Verifying token with Google Client ID:', process.env.GOOGLE_CLIENT_ID?.slice(0, 20) + '...');
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
+    console.log('[Auth] Token verified successfully');
 
     const payload = ticket.getPayload();
 
@@ -42,6 +46,7 @@ router.post('/google', async (req, res, next) => {
     }
 
     const { email, sub: googleId, name, picture } = payload;
+    console.log('[Auth] User email:', email);
 
     // Find or create user
     let user = await prisma.user.findUnique({
@@ -78,6 +83,7 @@ router.post('/google', async (req, res, next) => {
     });
     const refreshToken = await generateRefreshToken(user.id);
 
+    console.log('[Auth] Login successful for user:', user.id);
     res.json({
       success: true,
       data: {
@@ -90,6 +96,7 @@ router.post('/google', async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error('[Auth] Google auth error:', error);
     next(error);
   }
 });

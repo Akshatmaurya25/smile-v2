@@ -1,4 +1,4 @@
-package com.smile
+package com.aksha.smile
 
 import android.app.Application
 import com.facebook.react.PackageList

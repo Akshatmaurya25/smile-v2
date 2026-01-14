@@ -1,9 +1,25 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import type { ApiResponse } from '../types';
 
-// Configure base URL - will be set from environment
-const API_BASE_URL = process.env.API_URL || 'http://localhost:3000/api';
+// Configure base URL
+// Android emulator uses 10.0.2.2 to reach host machine's localhost
+// iOS simulator can use localhost directly
+const getBaseUrl = () => {
+  if (__DEV__) {
+    // Development mode
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:3000/api'; // Android emulator
+    }
+    return 'http://localhost:3000/api'; // iOS simulator
+  }
+  // Production - replace with your actual server URL
+  return 'https://your-production-server.com/api';
+};
+
+const API_BASE_URL = getBaseUrl();
+console.log('[API] Base URL:', API_BASE_URL);
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -14,16 +30,20 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and logging
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const tokens = useAuthStore.getState().tokens;
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor - handle errors and token refresh

@@ -1,4 +1,4 @@
-package com.smile
+package com.aksha.smile
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

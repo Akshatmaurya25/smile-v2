@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm start:*)"
+      "Bash(npm start:*)",
+      "Bash(keytool:*)",
+      "Bash(./gradlew clean)"
     ]
   }
 }

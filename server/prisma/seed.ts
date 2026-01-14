@@ -20,26 +20,37 @@ async function main() {
 
   // Create default categories
   for (const category of defaultCategories) {
-    await prisma.category.upsert({
+    // Check if default category already exists
+    const existing = await prisma.category.findFirst({
       where: {
-        name_userId: {
-          name: category.name,
-          userId: null as unknown as string, // For default categories, userId is null
-        },
-      },
-      update: {
-        icon: category.icon,
-        color: category.color,
-      },
-      create: {
         name: category.name,
-        icon: category.icon,
-        color: category.color,
         isDefault: true,
-        userId: null,
       },
     });
-    console.log(`Created/updated category: ${category.name}`);
+
+    if (existing) {
+      // Update existing
+      await prisma.category.update({
+        where: { id: existing.id },
+        data: {
+          icon: category.icon,
+          color: category.color,
+        },
+      });
+      console.log(`Updated category: ${category.name}`);
+    } else {
+      // Create new
+      await prisma.category.create({
+        data: {
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          isDefault: true,
+          userId: null,
+        },
+      });
+      console.log(`Created category: ${category.name}`);
+    }
   }
 
   console.log('Seeding completed!');

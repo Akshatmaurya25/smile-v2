@@ -93,11 +93,6 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation }) => {
       return;
     }
 
-    if (!description.trim()) {
-      Alert.alert('Error', 'Please enter a description');
-      return;
-    }
-
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
@@ -109,7 +104,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation }) => {
       const expenseData = {
         amount: parseFloat(amount),
         currency: user?.currency as 'INR',
-        description: description.trim(),
+        description: description.trim() || selectedCategory.name,
         categoryId: selectedCategory.id,
         splits: selectedFriends.length > 0
           ? selectedFriends.map((f) => ({
@@ -151,7 +146,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation }) => {
 
         {/* Description */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Description</Text>
+          <Text style={styles.inputLabel}>Description (optional)</Text>
           <TextInput
             style={styles.input}
             value={description}

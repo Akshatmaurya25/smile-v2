@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,38 +7,73 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import { SvgXml } from 'react-native-svg';
 import { colors, spacing, borderRadius, typography } from '../styles';
 import { useAuthStore } from '../store';
 import { authApi } from '../api';
 
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: process.env.GOOGLE_CLIENT_ID || '',
-  offlineAccess: true,
-});
+// Web Client ID from Google Cloud Console
+const WEB_CLIENT_ID =
+  '885524758632-lb169e569kh5mt7o9i26r67rolomp5a9.apps.googleusercontent.com';
+
+// Logo SVG (with dark background for login screen)
+const logoSvg = `<svg width="100" height="100" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1000" height="1000" rx="200" fill="#1E1E1E"/>
+<circle cx="314" cy="328" r="93" fill="#FFFCFC"/>
+<path d="M203 590C321.736 794.349 630.361 853.15 774 590" stroke="#FFFCFC" stroke-width="90" stroke-linecap="round"/>
+<g clip-path="url(#clip0_1_2)">
+<circle cx="659.39" cy="373.007" r="89" transform="rotate(12.6607 659.39 373.007)" stroke="white" stroke-width="53"/>
+</g>
+<defs>
+<clipPath id="clip0_1_2">
+<rect width="231" height="105" fill="white" transform="translate(572.014 235) rotate(12.6607)"/>
+</clipPath>
+</defs>
+</svg>`;
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuthStore();
 
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: WEB_CLIENT_ID,
+      offlineAccess: true,
+    });
+  }, []);
+
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('[Login] Starting Google Sign-In...');
 
       await GoogleSignin.hasPlayServices();
+      console.log('[Login] Play Services available');
+
       const userInfo = await GoogleSignin.signIn();
+      console.log('[Login] Google Sign-In successful:', userInfo.data?.user?.email);
 
       if (!userInfo.data?.idToken) {
-        throw new Error('No ID token received');
+        console.error('[Login] No ID token received from Google');
+        throw new Error('No ID token received from Google');
       }
+      console.log('[Login] ID Token received, length:', userInfo.data.idToken.length);
 
       // Authenticate with backend
+      console.log('[Login] Sending token to backend...');
       const response = await authApi.googleAuth(userInfo.data.idToken);
+      console.log('[Login] Backend response:', response);
+
       login(response.user, response.tokens);
+      console.log('[Login] Login successful!');
     } catch (err: unknown) {
+      console.error('[Login] Error:', err);
       const error = err as { code?: string; message?: string };
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         setError('Sign in cancelled');
@@ -47,11 +82,33 @@ const LoginScreen: React.FC = () => {
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         setError('Play services not available');
       } else {
-        setError(error.message || 'Failed to sign in');
+        const errorMsg = error.message || 'Failed to sign in';
+        console.error('[Login] Setting error:', errorMsg);
+        setError(errorMsg);
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Temporary: Skip login for demo purposes (remove in production)
+  const handleDemoLogin = () => {
+    const demoUser = {
+      id: 'demo-user-123',
+      email: 'demo@smile.app',
+      username: 'demo_user',
+      displayName: 'Demo User',
+      profileImage: null,
+      googleId: 'demo-google-id',
+      currency: 'INR' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const demoTokens = {
+      accessToken: 'demo-access-token',
+      refreshToken: 'demo-refresh-token',
+    };
+    login(demoUser, demoTokens);
   };
 
   return (
@@ -62,7 +119,7 @@ const LoginScreen: React.FC = () => {
       {/* Logo and branding */}
       <View style={styles.brandingContainer}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>😊</Text>
+          <SvgXml xml={logoSvg} width={100} height={100} />
         </View>
         <Text style={styles.appName}>Smile</Text>
         <Text style={styles.tagline}>Smart expense sharing made simple</Text>
@@ -111,6 +168,15 @@ const LoginScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
+        {/* Demo button - remove in production */}
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={handleDemoLogin}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.demoButtonText}>Try Demo (Skip Login)</Text>
+        </TouchableOpacity>
+
         <Text style={styles.disclaimer}>
           By continuing, you agree to our Terms of Service and Privacy Policy
         </Text>
@@ -141,13 +207,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
     borderRadius: borderRadius.xl,
-    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
+    overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.primary,
     shadowColor: colors.primary,
@@ -155,9 +221,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,
-  },
-  logoText: {
-    fontSize: 48,
   },
   appName: {
     fontSize: typography.sizes.display,
@@ -221,6 +284,23 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
+  },
+  demoButton: {
+    backgroundColor: 'transparent',
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  demoButtonText: {
+    color: colors.primary,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
   },
   disclaimer: {
     fontSize: typography.sizes.xs,
