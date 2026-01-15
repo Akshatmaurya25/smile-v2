@@ -75,8 +75,9 @@ router.post('/', authenticate, async (req, res, next) => {
 // DELETE /api/categories/:id - Delete custom category
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
+    const categoryId = req.params.id as string;
     const category = await prisma.category.findUnique({
-      where: { id: req.params.id },
+      where: { id: categoryId },
     });
 
     if (!category) {
@@ -93,7 +94,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
 
     // Check if category has expenses
     const expenseCount = await prisma.expense.count({
-      where: { categoryId: req.params.id },
+      where: { categoryId: categoryId },
     });
 
     if (expenseCount > 0) {
@@ -101,7 +102,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     }
 
     await prisma.category.delete({
-      where: { id: req.params.id },
+      where: { id: categoryId },
     });
 
     res.json({

@@ -179,7 +179,7 @@ router.get('/history', authenticate, async (req, res, next) => {
 // GET /api/borrowings/friend/:friendId - Get borrowings with specific friend
 router.get('/friend/:friendId', authenticate, async (req, res, next) => {
   try {
-    const friendId = req.params.friendId;
+    const friendId = req.params.friendId as string;
 
     // Get what current user owes friend
     const owes = await prisma.expenseSplit.findMany({
@@ -264,8 +264,9 @@ router.get('/friend/:friendId', authenticate, async (req, res, next) => {
 // POST /api/borrowings/:id/confirm - Confirm payment (both parties must confirm)
 router.post('/:id/confirm', authenticate, async (req, res, next) => {
   try {
+    const splitId = req.params.id as string;
     const split = await prisma.expenseSplit.findUnique({
-      where: { id: req.params.id },
+      where: { id: splitId },
       include: {
         expense: true,
       },
@@ -303,7 +304,7 @@ router.post('/:id/confirm', authenticate, async (req, res, next) => {
     }
 
     const updated = await prisma.expenseSplit.update({
-      where: { id: req.params.id },
+      where: { id: splitId },
       data: updateData,
       include: {
         expense: {
@@ -352,8 +353,9 @@ router.post('/:id/confirm', authenticate, async (req, res, next) => {
 // POST /api/borrowings/:id/remind - Send payment reminder
 router.post('/:id/remind', authenticate, async (req, res, next) => {
   try {
+    const splitId = req.params.id as string;
     const split = await prisma.expenseSplit.findUnique({
-      where: { id: req.params.id },
+      where: { id: splitId },
       include: {
         expense: {
           include: {

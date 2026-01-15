@@ -3,7 +3,9 @@ import crypto from 'crypto';
 import { prisma } from '../index.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret';
+// JWT_REFRESH_SECRET reserved for future use with JWT-based refresh tokens
+const _JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret';
+void _JWT_REFRESH_SECRET; // Prevent unused variable error
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -14,8 +16,8 @@ interface TokenPayload {
 
 export const generateAccessToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+    expiresIn: JWT_EXPIRES_IN as string,
+  } as jwt.SignOptions);
 };
 
 export const generateRefreshToken = async (userId: string): Promise<string> => {

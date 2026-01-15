@@ -257,9 +257,10 @@ router.get('/stats', authenticate, async (req, res, next) => {
 // GET /api/expenses/:id - Get single expense
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
+    const expenseId = req.params.id as string;
     const expense = await prisma.expense.findFirst({
       where: {
-        id: req.params.id,
+        id: expenseId,
         paidById: req.user!.id,
         isDeleted: false,
       },
@@ -390,11 +391,12 @@ router.post('/', authenticate, async (req, res, next) => {
 // PATCH /api/expenses/:id - Update expense
 router.patch('/:id', authenticate, async (req, res, next) => {
   try {
+    const expenseId = req.params.id as string;
     const data = updateExpenseSchema.parse(req.body);
 
     const existingExpense = await prisma.expense.findFirst({
       where: {
-        id: req.params.id,
+        id: expenseId,
         paidById: req.user!.id,
         isDeleted: false,
       },
@@ -405,7 +407,7 @@ router.patch('/:id', authenticate, async (req, res, next) => {
     }
 
     const expense = await prisma.expense.update({
-      where: { id: req.params.id },
+      where: { id: expenseId },
       data: {
         amount: data.amount,
         currency: data.currency,
@@ -434,9 +436,10 @@ router.patch('/:id', authenticate, async (req, res, next) => {
 // DELETE /api/expenses/:id - Soft delete expense
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
+    const expenseId = req.params.id as string;
     const existingExpense = await prisma.expense.findFirst({
       where: {
-        id: req.params.id,
+        id: expenseId,
         paidById: req.user!.id,
         isDeleted: false,
       },
@@ -447,7 +450,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     }
 
     await prisma.expense.update({
-      where: { id: req.params.id },
+      where: { id: expenseId },
       data: { isDeleted: true },
     });
 

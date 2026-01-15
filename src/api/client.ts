@@ -14,8 +14,8 @@ const getBaseUrl = () => {
     }
     return 'http://localhost:3000/api'; // iOS simulator
   }
-  // Production - replace with your actual server URL
-  return 'https://your-production-server.com/api';
+  // Production - Railway deployed URL
+  return 'https://smile-v2-production.up.railway.app/api';
 };
 
 const API_BASE_URL = getBaseUrl();

@@ -158,9 +158,10 @@ router.get('/sources', authenticate, async (_req, res) => {
 // GET /api/income/:id - Get single income entry
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
+    const incomeId = req.params.id as string;
     const income = await prisma.income.findFirst({
       where: {
-        id: req.params.id,
+        id: incomeId,
         userId: req.user!.id,
         isDeleted: false,
       },
@@ -213,11 +214,12 @@ router.post('/', authenticate, async (req, res, next) => {
 // PATCH /api/income/:id - Update income entry
 router.patch('/:id', authenticate, async (req, res, next) => {
   try {
+    const incomeId = req.params.id as string;
     const data = updateIncomeSchema.parse(req.body);
 
     const existingIncome = await prisma.income.findFirst({
       where: {
-        id: req.params.id,
+        id: incomeId,
         userId: req.user!.id,
         isDeleted: false,
       },
@@ -228,7 +230,7 @@ router.patch('/:id', authenticate, async (req, res, next) => {
     }
 
     const income = await prisma.income.update({
-      where: { id: req.params.id },
+      where: { id: incomeId },
       data: {
         amount: data.amount,
         currency: data.currency,
@@ -253,9 +255,10 @@ router.patch('/:id', authenticate, async (req, res, next) => {
 // DELETE /api/income/:id - Soft delete income entry
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
+    const incomeId = req.params.id as string;
     const existingIncome = await prisma.income.findFirst({
       where: {
-        id: req.params.id,
+        id: incomeId,
         userId: req.user!.id,
         isDeleted: false,
       },
@@ -266,7 +269,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     }
 
     await prisma.income.update({
-      where: { id: req.params.id },
+      where: { id: incomeId },
       data: { isDeleted: true },
     });
 

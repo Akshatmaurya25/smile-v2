@@ -58,9 +58,10 @@ router.get('/unread-count', authenticate, async (req, res, next) => {
 // PATCH /api/notifications/:id/read - Mark notification as read
 router.patch('/:id/read', authenticate, async (req, res, next) => {
   try {
+    const notificationId = req.params.id as string;
     const notification = await prisma.notification.findFirst({
       where: {
-        id: req.params.id,
+        id: notificationId,
         userId: req.user!.id,
       },
     });
@@ -70,7 +71,7 @@ router.patch('/:id/read', authenticate, async (req, res, next) => {
     }
 
     const updated = await prisma.notification.update({
-      where: { id: req.params.id },
+      where: { id: notificationId },
       data: { isRead: true },
     });
 
@@ -106,9 +107,10 @@ router.patch('/read-all', authenticate, async (req, res, next) => {
 // DELETE /api/notifications/:id - Delete notification
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
+    const notificationId = req.params.id as string;
     const notification = await prisma.notification.findFirst({
       where: {
-        id: req.params.id,
+        id: notificationId,
         userId: req.user!.id,
       },
     });
@@ -118,7 +120,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
     }
 
     await prisma.notification.delete({
-      where: { id: req.params.id },
+      where: { id: notificationId },
     });
 
     res.json({
