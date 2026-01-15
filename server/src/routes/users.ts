@@ -12,6 +12,7 @@ const updateProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   profileImage: z.string().url().optional(),
   currency: z.enum(['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SGD']).optional(),
+  savingsGoal: z.number().positive().nullable().optional(),
 });
 
 // PATCH /api/users/profile - Update user profile

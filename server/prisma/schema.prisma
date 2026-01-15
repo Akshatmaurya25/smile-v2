@@ -19,6 +19,7 @@ model User {
   profileImage  String?
   googleId      String    @unique
   currency      String    @default("INR")
+  savingsGoal   Decimal?  @db.Decimal(12, 2)  // Monthly savings goal
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -179,4 +180,5 @@ enum NotificationType {
   PAYMENT_CONFIRMED
   FRIEND_REQUEST
   FRIEND_ACCEPTED
+  PAYMENT_REMINDER
 }

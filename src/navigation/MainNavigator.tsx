@@ -92,7 +92,7 @@ const MainNavigator: React.FC = () => {
         component={FriendsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="⋯" label="SOCIAL" />
+            <TabIcon focused={focused} icon="•••" label="SOCIAL" />
           ),
         }}
       />
@@ -127,9 +127,6 @@ const styles = StyleSheet.create({
   },
   tabIcon: {
     fontSize: 22,
-  },
-  tabIconFocused: {
-    // No opacity change needed, we use color
   },
   tabLabel: {
     fontSize: 9,

@@ -8,7 +8,13 @@
       "Bash(./gradlew clean)",
       "Bash(C:UsersakshaAppDataLocalAndroidSdkemulatoremulator -list-avds)",
       "Bash(npx prisma migrate dev:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(git filter-repo:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: Add .env to gitignore and create .env.example template\n\n- Added .env patterns to .gitignore to prevent secrets from being committed\n- Created server/.env.example with placeholder values for developers\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

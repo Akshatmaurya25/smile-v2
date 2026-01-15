@@ -6,6 +6,7 @@ interface UpdateProfileInput {
   displayName?: string;
   profileImage?: string;
   currency?: string;
+  savingsGoal?: number | null;
 }
 
 export const usersApi = {

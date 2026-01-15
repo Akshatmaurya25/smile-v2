@@ -16,9 +16,9 @@ import {
 import { colors, spacing, borderRadius, typography } from '../styles';
 import { useFriendStore } from '../store';
 import { friendsApi, usersApi } from '../api';
-import type { User } from '../types';
+import type { User, Borrowing } from '../types';
 
-type TabType = 'friends' | 'borrowings';
+type TabType = 'friends' | 'history';
 
 const FriendsScreen: React.FC = () => {
   const {
@@ -44,6 +44,8 @@ const FriendsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [borrowingHistory, setBorrowingHistory] = useState<Borrowing[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchFriends = useCallback(async () => {
     try {
@@ -63,9 +65,27 @@ const FriendsScreen: React.FC = () => {
     }
   }, [setLoading, setFriends, setPendingRequests, setBorrowings]);
 
+  const fetchHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      const result = await friendsApi.getBorrowingHistory(1, 50);
+      setBorrowingHistory(result.data);
+    } catch (err) {
+      // Silent fail
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchFriends();
   }, [fetchFriends]);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchHistory();
+    }
+  }, [activeTab, fetchHistory]);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -142,9 +162,14 @@ const FriendsScreen: React.FC = () => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Send',
-          onPress: () => {
-            // TODO: Implement notification sending
-            Alert.alert('Reminder Sent', `Reminder sent to ${userName}`);
+          onPress: async () => {
+            try {
+              const result = await friendsApi.sendReminder(borrowing.id);
+              Alert.alert('Reminder Sent', result.message);
+            } catch (error: unknown) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to send reminder';
+              Alert.alert('Error', errorMessage);
+            }
           },
         },
       ]
@@ -202,12 +227,6 @@ const FriendsScreen: React.FC = () => {
           >
             <Text style={styles.headerButtonIcon}>+</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowSearchModal(true)}
-          >
-            <Text style={styles.headerButtonIcon}>🔍</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -222,11 +241,11 @@ const FriendsScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'borrowings' && styles.tabActive]}
-          onPress={() => setActiveTab('borrowings')}
+          style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+          onPress={() => setActiveTab('history')}
         >
-          <Text style={[styles.tabText, activeTab === 'borrowings' && styles.tabTextActive]}>
-            BORROWINGS
+          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+            HISTORY
           </Text>
         </TouchableOpacity>
       </View>
@@ -237,12 +256,14 @@ const FriendsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchFriends}
+            refreshing={activeTab === 'friends' ? isLoading : historyLoading}
+            onRefresh={activeTab === 'friends' ? fetchFriends : fetchHistory}
             tintColor={colors.primary}
           />
         }
       >
+        {activeTab === 'friends' ? (
+          <>
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
           <View style={[styles.summaryCard, styles.oweCard]}>
@@ -358,7 +379,30 @@ const FriendsScreen: React.FC = () => {
               const userAvatar = otherUser?.profileImage;
               const description = due.expense?.description || 'Expense';
               const isConfirming = confirmingId === due.id;
-              const hasConfirmed = isOwe ? due.confirmedByPayee : due.confirmedByPayer;
+
+              // Your confirmation status
+              const youConfirmed = isOwe ? due.confirmedByPayee : due.confirmedByPayer;
+              // Other party's confirmation status
+              const otherConfirmed = isOwe ? due.confirmedByPayer : due.confirmedByPayee;
+
+              // Determine button action and text
+              const getButtonConfig = () => {
+                if (youConfirmed && otherConfirmed) {
+                  return { text: 'COMPLETED', disabled: true, action: () => {} };
+                }
+                if (youConfirmed) {
+                  return { text: 'WAITING', disabled: true, action: () => {} };
+                }
+                if (otherConfirmed) {
+                  return { text: 'CONFIRM', disabled: false, action: () => handleConfirmPayment(due.id) };
+                }
+                // Neither confirmed
+                if (isOwe) {
+                  return { text: 'MARK PAID', disabled: false, action: () => handleConfirmPayment(due.id) };
+                }
+                return { text: 'REMIND', disabled: false, action: () => handleRemind(due) };
+              };
+              const buttonConfig = getButtonConfig();
 
               return (
                 <View
@@ -391,8 +435,12 @@ const FriendsScreen: React.FC = () => {
                       <Text style={styles.cardSubtext}>
                         {isOwe ? 'YOU OWE' : 'OWES YOU'} • {description.toUpperCase().slice(0, 20)}
                       </Text>
-                      {hasConfirmed && (
+                      {/* Show confirmation status */}
+                      {youConfirmed && (
                         <Text style={styles.confirmationStatus}>✓ You confirmed</Text>
+                      )}
+                      {otherConfirmed && !youConfirmed && (
+                        <Text style={styles.otherConfirmedStatus}>✓ {userName.split(' ')[0]} confirmed</Text>
                       )}
                     </View>
                     <View style={styles.dueRight}>
@@ -405,17 +453,17 @@ const FriendsScreen: React.FC = () => {
                       <TouchableOpacity
                         style={[
                           styles.dueActionBtn,
-                          isOwe ? styles.markPaidBtn : styles.remindBtn,
-                          isConfirming && styles.dueActionBtnDisabled,
+                          otherConfirmed && !youConfirmed ? styles.confirmBtn : (isOwe ? styles.markPaidBtn : styles.remindBtn),
+                          (isConfirming || buttonConfig.disabled) && styles.dueActionBtnDisabled,
                         ]}
-                        onPress={() => isOwe ? handleConfirmPayment(due.id) : handleRemind(due)}
-                        disabled={isConfirming || hasConfirmed}
+                        onPress={buttonConfig.action}
+                        disabled={isConfirming || buttonConfig.disabled}
                       >
                         <Text style={[
                           styles.dueActionText,
-                          isOwe ? styles.markPaidText : styles.remindText,
+                          otherConfirmed && !youConfirmed ? styles.confirmText : (isOwe ? styles.markPaidText : styles.remindText),
                         ]}>
-                          {isConfirming ? '...' : hasConfirmed ? 'CONFIRMED' : isOwe ? 'MARK PAID' : 'REMIND'}
+                          {isConfirming ? '...' : buttonConfig.text}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -498,6 +546,79 @@ const FriendsScreen: React.FC = () => {
             </View>
           )}
         </View>
+          </>
+        ) : (
+          <>
+            {/* History View */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Payment History</Text>
+              </View>
+              {borrowingHistory.length > 0 ? (
+                borrowingHistory.map((item) => {
+                  const isOwe = item.type === 'owe';
+                  const otherUser = isOwe ? item.toUser : item.fromUser;
+                  const userName = otherUser?.displayName || otherUser?.email || 'Unknown';
+                  const userAvatar = otherUser?.profileImage;
+                  const description = item.expense?.description || 'Payment';
+                  const paidDate = item.paidAt ? new Date(item.paidAt).toLocaleDateString() : '';
+
+                  return (
+                    <View
+                      key={item.id}
+                      style={[styles.glassCard, styles.historyCard]}
+                    >
+                      <View style={styles.cardRow}>
+                        <View style={styles.avatarContainer}>
+                          {userAvatar ? (
+                            <Image source={{ uri: userAvatar }} style={styles.avatar} />
+                          ) : (
+                            <View style={[styles.avatarPlaceholder, styles.historyAvatarPlaceholder]}>
+                              <Text style={[styles.avatarText, { color: colors.primary }]}>
+                                {getInitials(userName)}
+                              </Text>
+                            </View>
+                          )}
+                          <View style={styles.completedIndicator}>
+                            <Text style={styles.completedIcon}>✓</Text>
+                          </View>
+                        </View>
+                        <View style={styles.cardInfo}>
+                          <Text style={styles.cardName}>{userName}</Text>
+                          <Text style={styles.cardSubtext}>
+                            {isOwe ? 'YOU PAID' : 'PAID YOU'} • {description.toUpperCase().slice(0, 20)}
+                          </Text>
+                          {paidDate && (
+                            <Text style={styles.historyDate}>Cleared on {paidDate}</Text>
+                          )}
+                        </View>
+                        <View style={styles.historyRight}>
+                          <Text style={[
+                            styles.historyAmount,
+                            { color: isOwe ? colors.error : colors.primary }
+                          ]}>
+                            {isOwe ? '-' : '+'}₹{item.amount.toLocaleString()}
+                          </Text>
+                          <View style={styles.clearedBadge}>
+                            <Text style={styles.clearedText}>CLEARED</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyHistoryContainer}>
+                  <Text style={styles.emptyHistoryIcon}>📜</Text>
+                  <Text style={styles.emptyHistoryText}>No history yet</Text>
+                  <Text style={styles.emptyHistorySubtext}>
+                    Cleared payments will appear here
+                  </Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Add Friend Modal */}
@@ -900,6 +1021,22 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '600',
   },
+  otherConfirmedStatus: {
+    fontSize: 9,
+    color: colors.warning,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  confirmBtn: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+  },
+  confirmText: {
+    color: colors.background,
+  },
   emptyDuesContainer: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
@@ -1060,6 +1197,78 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: spacing.lg,
+  },
+  // History Styles
+  historyCard: {
+    borderColor: 'rgba(0, 255, 136, 0.3)',
+  },
+  historyAvatarPlaceholder: {
+    backgroundColor: 'rgba(0, 255, 136, 0.15)',
+  },
+  completedIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  completedIcon: {
+    fontSize: 8,
+    color: colors.background,
+    fontWeight: '800',
+  },
+  historyDate: {
+    fontSize: 9,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  historyRight: {
+    alignItems: 'flex-end',
+  },
+  historyAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  clearedBadge: {
+    marginTop: spacing.xs,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 255, 136, 0.15)',
+  },
+  clearedText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  emptyHistoryContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    backgroundColor: 'rgba(100, 100, 100, 0.1)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(100, 100, 100, 0.2)',
+  },
+  emptyHistoryIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
+  },
+  emptyHistoryText: {
+    fontSize: 16,
+    color: colors.textMuted,
+    fontWeight: '700',
+  },
+  emptyHistorySubtext: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
 });
 

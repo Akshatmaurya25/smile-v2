@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '../styles';
 import { useSettingsStore, StatsPeriod, useAuthStore } from '../store';
+import { usersApi } from '../api';
 
 const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
   { value: 'daily', label: 'Daily' },
@@ -75,7 +76,7 @@ const SettingRow: React.FC<SettingRowProps> = ({
 );
 
 const SettingsScreen: React.FC = () => {
-  const { logout } = useAuthStore();
+  const { logout, user, setUser } = useAuthStore();
   const {
     statsPeriod,
     monthlyIncome,
@@ -87,14 +88,36 @@ const SettingsScreen: React.FC = () => {
 
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showSavingsGoalModal, setShowSavingsGoalModal] = useState(false);
   const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
+  const [savingsGoalInput, setSavingsGoalInput] = useState('');
+  const [savingsGoal, setSavingsGoal] = useState<number | null>(null);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [cloudBackupEnabled, setCloudBackupEnabled] = useState(false);
+
+  useEffect(() => {
+    if (user?.savingsGoal) {
+      setSavingsGoal(user.savingsGoal);
+      setSavingsGoalInput(user.savingsGoal.toString());
+    }
+  }, [user?.savingsGoal]);
 
   const handleSaveIncome = () => {
     const income = parseFloat(incomeInput) || 0;
     setMonthlyIncome(income);
     setShowIncomeModal(false);
+  };
+
+  const handleSaveSavingsGoal = async () => {
+    const goal = parseFloat(savingsGoalInput) || 0;
+    try {
+      const updatedUser = await usersApi.updateProfile({ savingsGoal: goal > 0 ? goal : null });
+      setSavingsGoal(goal > 0 ? goal : null);
+      if (setUser) setUser(updatedUser);
+      setShowSavingsGoalModal(false);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update savings goal');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -154,13 +177,26 @@ const SettingsScreen: React.FC = () => {
               }}
             />
             <SettingRow
-              icon="📅"
+              icon="🎯"
               iconColor={colors.secondary}
               iconBg="rgba(0, 212, 255, 0.1)"
+              label="Savings Goal"
+              sublabel="MONTHLY TARGET"
+              value={savingsGoal ? formatCurrency(savingsGoal) : 'Not set'}
+              valueColor={colors.secondary}
+              onPress={() => {
+                setSavingsGoalInput(savingsGoal?.toString() || '');
+                setShowSavingsGoalModal(true);
+              }}
+            />
+            <SettingRow
+              icon="📅"
+              iconColor={colors.accent}
+              iconBg="rgba(255, 0, 255, 0.1)"
               label="Stats Period"
               sublabel="DEFAULT DASHBOARD VIEW"
               value={getPeriodLabel()}
-              valueColor={colors.secondary}
+              valueColor={colors.accent}
               onPress={() => setShowPeriodModal(true)}
               showBorder={false}
             />
@@ -344,6 +380,61 @@ const SettingsScreen: React.FC = () => {
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveIncome}>
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Savings Goal Modal */}
+      <Modal
+        visible={showSavingsGoalModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowSavingsGoalModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Savings Goal</Text>
+              <TouchableOpacity onPress={() => setShowSavingsGoalModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.incomeDescription}>
+              Set a monthly savings target to track your progress
+            </Text>
+
+            <View style={styles.incomeInputContainer}>
+              <Text style={[styles.currencySymbol, { color: colors.secondary }]}>₹</Text>
+              <TextInput
+                style={[styles.incomeInput, { color: colors.secondary }]}
+                value={savingsGoalInput}
+                onChangeText={setSavingsGoalInput}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: colors.secondary }]}
+              onPress={handleSaveSavingsGoal}
+            >
+              <Text style={styles.saveButtonText}>Save Goal</Text>
+            </TouchableOpacity>
+
+            {savingsGoal && savingsGoal > 0 && (
+              <TouchableOpacity
+                style={styles.clearGoalButton}
+                onPress={() => {
+                  setSavingsGoalInput('0');
+                  handleSaveSavingsGoal();
+                }}
+              >
+                <Text style={styles.clearGoalText}>Clear Goal</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -601,6 +692,16 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 15,
     fontWeight: '700',
+  },
+  clearGoalButton: {
+    padding: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  clearGoalText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

@@ -7,6 +7,7 @@ export interface User {
   profileImage: string | null;
   googleId: string;
   currency: Currency;
+  savingsGoal: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,7 +135,7 @@ export interface Friend {
 }
 
 // Notification types
-export type NotificationType = 'bill_split' | 'payment_request' | 'payment_confirmed' | 'friend_request';
+export type NotificationType = 'bill_split' | 'payment_request' | 'payment_confirmed' | 'friend_request' | 'friend_accepted' | 'payment_reminder';
 
 export interface Notification {
   id: string;
@@ -158,6 +159,9 @@ export interface ExpenseStats {
   totalIncome: number;
   totalExpenses: number;
   totalBorrowings: number;
+  savings: number;
+  savingsGoal: number | null;
+  savingsGoalProgress: number | null;
   expensesByCategory: { categoryId: string; categoryName: string; categoryIcon?: string; total: number; percentage: number }[];
   weeklyExpenses: WeeklyExpense[];
   monthlyExpenses: { month: string; total: number }[];
@@ -174,6 +178,7 @@ export interface Borrowing {
   currency: Currency;
   expense: Expense;
   isPaid: boolean;
+  paidAt?: string;
   confirmedByPayer: boolean;
   confirmedByPayee: boolean;
   type: BorrowingType;

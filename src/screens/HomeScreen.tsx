@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
-import Svg, { Path, Circle, G, Defs, ClipPath, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, G, Defs, ClipPath, Rect, LinearGradient, Stop } from 'react-native-svg';
 import { colors, spacing, borderRadius, typography } from '../styles';
-import { useAuthStore, useExpenseStore, useFriendStore, useSettingsStore } from '../store';
-import { expensesApi, friendsApi, incomeApi } from '../api';
+import { useAuthStore, useExpenseStore, useFriendStore, useSettingsStore, useNotificationStore } from '../store';
+import { expensesApi, friendsApi, incomeApi, notificationsApi } from '../api';
 import type { Income } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -23,7 +24,9 @@ const HomeScreen: React.FC = () => {
   const { expenses, stats, isLoading, setExpenses, setStats, setLoading, setError, markFetched } = useExpenseStore();
   const { borrowings, setBorrowings } = useFriendStore();
   const { statsPeriod, monthlyIncome } = useSettingsStore();
-  const [recentIncomes, setRecentIncomes] = React.useState<Income[]>([]);
+  const { notifications, unreadCount, setNotifications, markAsRead } = useNotificationStore();
+  const [recentIncomes, setRecentIncomes] = useState<Income[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const getApiPeriod = () => {
     switch (statsPeriod) {
@@ -45,6 +48,7 @@ const HomeScreen: React.FC = () => {
         friendsApi.getBorrowings(),
         expensesApi.getExpenses({ limit: 20 }),
         incomeApi.getIncomes({ limit: 10 }),
+        notificationsApi.getNotifications(1, 20),
       ]);
 
       if (results[0].status === 'fulfilled') {
@@ -59,13 +63,16 @@ const HomeScreen: React.FC = () => {
       if (results[3].status === 'fulfilled') {
         setRecentIncomes(results[3].value.data || []);
       }
+      if (results[4].status === 'fulfilled') {
+        setNotifications(results[4].value.data || []);
+      }
       markFetched();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setStats, setBorrowings, setExpenses, markFetched, setError]);
+  }, [setLoading, setStats, setBorrowings, setExpenses, setNotifications, markFetched, setError]);
 
   useEffect(() => {
     fetchData();
@@ -120,24 +127,13 @@ const HomeScreen: React.FC = () => {
 
   const totalExpenses = stats?.totalExpenses || 0;
   const income = stats?.totalIncome || monthlyIncome || 0;
-  const savings = Math.max(0, income - totalExpenses);
+  const savings = stats?.savings ?? Math.max(0, income - totalExpenses);
+  const savingsGoal = stats?.savingsGoal || null;
+  const savingsGoalProgress = stats?.savingsGoalProgress || null;
 
   // Calculate percentages for donut chart
   const calculateStrokeDasharray = (percentage: number) => {
     return `${percentage}, ${100 - percentage}`;
-  };
-
-  const getCategoryIcon = (categoryName: string) => {
-    const icons: { [key: string]: string } = {
-      'Food & Dining': 'restaurant',
-      'Transportation': 'commute',
-      'Shopping': 'shopping_bag',
-      'Entertainment': 'movie',
-      'Bills': 'receipt',
-      'Health': 'medical_services',
-      'Income': 'account_balance',
-    };
-    return icons[categoryName] || 'category';
   };
 
   return (
@@ -157,14 +153,36 @@ const HomeScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.avatarContainer}>
-            {user?.profileImage ? (
-              <Image source={{ uri: user.profileImage }} style={styles.avatar} />
-            ) : (
-              <Text style={styles.avatarText}>
-                {(user?.displayName || 'U').charAt(0).toUpperCase()}
-              </Text>
-            )}
+          <View style={styles.avatarWrapper}>
+            {/* Gradient Ring */}
+            <Svg width={52} height={52} style={styles.avatarRing}>
+              <Defs>
+                <LinearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <Stop offset="0%" stopColor={colors.secondary} />
+                  <Stop offset="50%" stopColor={colors.primary} />
+                  <Stop offset="100%" stopColor={colors.accent} />
+                </LinearGradient>
+              </Defs>
+              <Circle
+                cx="26"
+                cy="26"
+                r="24"
+                stroke="url(#avatarGradient)"
+                strokeWidth="2.5"
+                fill="none"
+              />
+            </Svg>
+            <View style={styles.avatarContainer}>
+              {user?.profileImage ? (
+                <Image source={{ uri: user.profileImage }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>
+                    {(user?.displayName || 'U').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
           <View>
             <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -172,11 +190,29 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerButtonIcon}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerButtonIcon}>🔍</Text>
+          <TouchableOpacity
+            onPress={() => setShowNotifications(true)}
+            style={styles.notificationButton}
+          >
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+              <Path
+                d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke={colors.textMuted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path
+                d="M13.73 21a2 2 0 0 1-3.46 0"
+                stroke={colors.textMuted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+            {unreadCount > 0 && (
+              <View style={styles.notificationDot} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -217,10 +253,28 @@ const HomeScreen: React.FC = () => {
           <Text style={[styles.statValue, { color: colors.secondary }]}>
             {formatCurrency(savings)}
           </Text>
-          <View style={styles.statTrend}>
-            <Text style={[styles.trendIcon, { color: colors.secondary }]}>◎</Text>
-            <Text style={[styles.trendText, { color: colors.secondary }]}>85% Goal</Text>
-          </View>
+          {savingsGoal ? (
+            <View style={styles.savingsGoalSection}>
+              <View style={styles.goalProgressBar}>
+                <View
+                  style={[
+                    styles.goalProgressFill,
+                    { width: `${Math.min(savingsGoalProgress || 0, 100)}%` }
+                  ]}
+                />
+              </View>
+              <View style={styles.goalInfo}>
+                <Text style={styles.goalText}>
+                  {savingsGoalProgress?.toFixed(0) || 0}% of {formatCurrency(savingsGoal)}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.statTrend}>
+              <Text style={[styles.trendIcon, { color: colors.secondary }]}>◎</Text>
+              <Text style={[styles.trendText, { color: colors.textMuted }]}>No goal set</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -331,46 +385,36 @@ const HomeScreen: React.FC = () => {
             {(() => {
               const weeklyData = stats?.weeklyExpenses || [];
               const maxValue = Math.max(...weeklyData.map(d => d.total), 1000);
-              const barColors = [
-                colors.secondary,
-                colors.primary,
-                colors.accent,
-                colors.primary,
-                colors.secondary,
-                colors.accent,
-                colors.secondary,
-              ];
-              const highestIndex = weeklyData.reduce((maxIdx, curr, idx, arr) =>
-                curr.total > arr[maxIdx].total ? idx : maxIdx, 0);
+              const today = new Date().getDay();
+              const dayIndex = today === 0 ? 6 : today - 1; // Convert to Mon=0, Sun=6
 
               return weeklyData.map((item, index) => {
                 const heightPercent = maxValue > 0
-                  ? Math.max(Math.min((item.total / maxValue) * 100, 100), 8)
-                  : 8;
-                const isHighlighted = index === highestIndex && item.total > 0;
+                  ? Math.max(Math.min((item.total / maxValue) * 100, 100), 5)
+                  : 5;
+                const isToday = index === dayIndex;
                 return (
                   <View key={index} style={styles.barWrapper}>
-                    <Text style={styles.barValue}>
-                      {item.total >= 1000 ? `₹${(item.total / 1000).toFixed(1)}k` : `₹${item.total.toFixed(0)}`}
+                    <Text style={[styles.barValue, isToday && styles.barValueHighlight]}>
+                      {item.total >= 1000 ? `₹${(item.total / 1000).toFixed(0)}k` : `₹${item.total.toFixed(0)}`}
                     </Text>
-                    <View style={styles.barTrack}>
+                    <View style={styles.barTrackNew}>
                       <View
                         style={[
-                          styles.bar,
+                          styles.barNew,
                           {
                             height: `${heightPercent}%`,
-                            backgroundColor: isHighlighted ? colors.primary : barColors[index],
-                            shadowColor: isHighlighted ? colors.primary : barColors[index],
-                            shadowOpacity: isHighlighted ? 0.6 : 0.3,
-                            shadowRadius: 8,
-                            shadowOffset: { width: 0, height: 0 },
+                            backgroundColor: isToday ? colors.primary : colors.secondary,
+                            shadowColor: isToday ? colors.primary : colors.secondary,
                           },
                         ]}
                       />
+                      {/* Magenta dot at bottom */}
+                      <View style={styles.barDot} />
                     </View>
                     <Text style={[
                       styles.barLabel,
-                      isHighlighted && { color: colors.primary }
+                      isToday && styles.barLabelHighlight
                     ]}>{item.dayName}</Text>
                   </View>
                 );
@@ -510,6 +554,67 @@ const HomeScreen: React.FC = () => {
           });
         })()}
       </View>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={showNotifications}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.notificationList} showsVerticalScrollIndicator={false}>
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <TouchableOpacity
+                    key={notification.id}
+                    style={[
+                      styles.notificationItem,
+                      !notification.isRead && styles.notificationUnread,
+                    ]}
+                    onPress={async () => {
+                      if (!notification.isRead) {
+                        markAsRead(notification.id);
+                        await notificationsApi.markAsRead(notification.id);
+                      }
+                    }}
+                  >
+                    <View style={styles.notificationItemIcon}>
+                      <Text style={{ fontSize: 20 }}>
+                        {notification.type === 'payment_confirmed' ? '✅' :
+                         notification.type === 'payment_request' ? '💰' :
+                         notification.type === 'friend_request' ? '👤' :
+                         notification.type === 'bill_split' ? '📝' : '🔔'}
+                      </Text>
+                    </View>
+                    <View style={styles.notificationContent}>
+                      <Text style={styles.notificationTitle}>{notification.title}</Text>
+                      <Text style={styles.notificationMessage}>{notification.message}</Text>
+                      <Text style={styles.notificationTime}>
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    {!notification.isRead && <View style={styles.unreadDot} />}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyNotifications}>
+                  <Text style={styles.emptyNotificationsIcon}>🔔</Text>
+                  <Text style={styles.emptyNotificationsText}>No notifications yet</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -535,26 +640,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
+  avatarWrapper: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarRing: {
+    position: 'absolute',
+  },
   avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarPlaceholder: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    background: `linear-gradient(${colors.primary}, ${colors.secondary}, ${colors.accent})`,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
   },
   avatarText: {
     fontSize: 18,
     fontWeight: typography.weights.bold,
     color: colors.text,
+  },
+  notificationButton: {
+    padding: 4,
   },
   greeting: {
     fontSize: 10,
@@ -639,6 +761,29 @@ const styles = StyleSheet.create({
   trendText: {
     fontSize: 10,
     fontWeight: typography.weights.bold,
+  },
+  // Savings goal styles
+  savingsGoalSection: {
+    marginTop: spacing.sm,
+  },
+  goalProgressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  goalProgressFill: {
+    height: '100%',
+    backgroundColor: colors.secondary,
+    borderRadius: 3,
+  },
+  goalInfo: {
+    marginTop: spacing.xs,
+  },
+  goalText: {
+    fontSize: 9,
+    fontWeight: typography.weights.bold,
+    color: colors.secondary,
   },
   chartCard: {
     marginHorizontal: spacing.lg,
@@ -726,7 +871,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   barChartContainer: {
-    height: 160,
+    height: 180,
     marginTop: spacing.md,
   },
   barsContainer: {
@@ -741,10 +886,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   barValue: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: typography.weights.bold,
     color: colors.textMuted,
     marginBottom: spacing.xs,
+  },
+  barValueHighlight: {
+    color: colors.text,
   },
   barTrack: {
     width: '65%',
@@ -753,6 +901,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(50, 50, 50, 0.3)',
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  barTrackNew: {
+    width: '55%',
+    height: 110,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  barNew: {
+    width: '100%',
+    borderRadius: 6,
+    minHeight: 8,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  barDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+    marginTop: 6,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
   },
   bar: {
     width: '100%',
@@ -764,6 +937,9 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.textMuted,
     marginTop: spacing.sm,
+  },
+  barLabelHighlight: {
+    color: colors.primary,
   },
   weekSummary: {
     flexDirection: 'row',
@@ -854,6 +1030,105 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: spacing.xs,
+  },
+  // Notification badge
+  notificationDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.error,
+  },
+  // Notification modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: spacing.lg,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  modalClose: {
+    fontSize: 24,
+    color: colors.textSecondary,
+  },
+  notificationList: {
+    maxHeight: 400,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    marginBottom: spacing.sm,
+  },
+  notificationUnread: {
+    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+    borderWidth: 1,
+    borderColor: colors.primaryGlow,
+  },
+  notificationItemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  notificationMessage: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  notificationTime: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  emptyNotifications: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  emptyNotificationsIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  emptyNotificationsText: {
+    fontSize: 14,
+    color: colors.textMuted,
   },
 });
 

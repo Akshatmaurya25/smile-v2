@@ -69,4 +69,32 @@ export const friendsApi = {
     );
     return response.data.data;
   },
+
+  // Get borrowing history (cleared/paid)
+  getBorrowingHistory: async (
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ data: Borrowing[]; total: number; hasMore: boolean }> => {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: Borrowing[];
+      total: number;
+      page: number;
+      limit: number;
+      hasMore: boolean;
+    }>(`/borrowings/history?page=${page}&limit=${limit}`);
+    return {
+      data: response.data.data,
+      total: response.data.total,
+      hasMore: response.data.hasMore,
+    };
+  },
+
+  // Send payment reminder
+  sendReminder: async (borrowingId: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<ApiResponse<{ message: string }>>(
+      `/borrowings/${borrowingId}/remind`
+    );
+    return { message: response.data.message || 'Reminder sent' };
+  },
 };

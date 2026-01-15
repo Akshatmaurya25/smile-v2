@@ -122,6 +122,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
 
     // Calculate actual expense for user (total paid - amount to be recovered from splits)
     // Your expense = What you paid - What others owe you
+    // NOTE: Splits you owe to others are NOT expenses, they are borrowings/debts
     let totalExpenses = 0;
     const categoryTotals: Map<string, { total: number; category: typeof userExpenses[0]['category'] }> = new Map();
 
@@ -142,38 +143,8 @@ router.get('/stats', authenticate, async (req, res, next) => {
       }
     }
 
-    // Also add expenses where user owes others (splits assigned to user)
-    const userSplits = await prisma.expenseSplit.findMany({
-      where: {
-        userId: req.user!.id,
-        expense: {
-          paidById: { not: req.user!.id },
-          isDeleted: false,
-          date: { gte: startDate },
-        },
-      },
-      include: {
-        expense: {
-          include: { category: true },
-        },
-      },
-    });
-
-    for (const split of userSplits) {
-      const splitAmount = Number(split.amount);
-      totalExpenses += splitAmount;
-
-      // Track by category
-      const existing = categoryTotals.get(split.expense.categoryId);
-      if (existing) {
-        existing.total += splitAmount;
-      } else {
-        categoryTotals.set(split.expense.categoryId, {
-          total: splitAmount,
-          category: split.expense.category
-        });
-      }
-    }
+    // NOTE: We do NOT add splits assigned to user as expenses
+    // Those are borrowings/debts, tracked separately in totalBorrowings
 
     // Build category stats
     const categoryStats = Array.from(categoryTotals.entries()).map(([categoryId, data]) => ({
@@ -195,7 +166,8 @@ router.get('/stats', authenticate, async (req, res, next) => {
     });
 
     // Daily expenses for the last 7 days (for weekly chart)
-    // This needs to calculate user's portion correctly
+    // Only count expenses YOU paid (minus splits = your portion)
+    // NOT including debts/borrowings (splits assigned to you by others)
     const weekStart = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
     weekStart.setHours(0, 0, 0, 0);
 
@@ -209,20 +181,7 @@ router.get('/stats', authenticate, async (req, res, next) => {
       include: { splits: true },
     });
 
-    // Get splits assigned to user in last 7 days
-    const weekSplits = await prisma.expenseSplit.findMany({
-      where: {
-        userId: req.user!.id,
-        expense: {
-          paidById: { not: req.user!.id },
-          isDeleted: false,
-          date: { gte: weekStart },
-        },
-      },
-      include: { expense: true },
-    });
-
-    // Calculate daily totals
+    // Calculate daily totals (only user's own expenses, not debts)
     const dailyTotals: Map<string, number> = new Map();
 
     for (const expense of weekExpenses) {
@@ -230,11 +189,6 @@ router.get('/stats', authenticate, async (req, res, next) => {
       const splitsTotal = expense.splits.reduce((sum, split) => sum + Number(split.amount), 0);
       const userPortion = Number(expense.amount) - splitsTotal;
       dailyTotals.set(dateStr, (dailyTotals.get(dateStr) || 0) + userPortion);
-    }
-
-    for (const split of weekSplits) {
-      const dateStr = split.expense.date.toISOString().split('T')[0];
-      dailyTotals.set(dateStr, (dailyTotals.get(dateStr) || 0) + Number(split.amount));
     }
 
     // Fill in missing days with 0
@@ -268,12 +222,28 @@ router.get('/stats', authenticate, async (req, res, next) => {
       ORDER BY month ASC
     `;
 
+    // Get user's savings goal
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { savingsGoal: true },
+    });
+
+    const totalIncome = Number(totalIncomeResult._sum.amount) || 0;
+    const savings = Math.max(0, totalIncome - totalExpenses);
+    const savingsGoal = user?.savingsGoal ? Number(user.savingsGoal) : null;
+    const savingsGoalProgress = savingsGoal && savingsGoal > 0
+      ? Math.min((savings / savingsGoal) * 100, 100)
+      : null;
+
     res.json({
       success: true,
       data: {
-        totalIncome: Number(totalIncomeResult._sum.amount) || 0,
+        totalIncome,
         totalExpenses,
         totalBorrowings: Number(borrowings._sum.amount) || 0,
+        savings,
+        savingsGoal,
+        savingsGoalProgress,
         expensesByCategory: categoryStats,
         weeklyExpenses: weeklyData,
         monthlyExpenses,
