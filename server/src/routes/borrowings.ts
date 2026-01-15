@@ -382,7 +382,7 @@ router.post('/:id/remind', authenticate, async (req, res, next) => {
 
     // Create reminder notification for the borrower
     const borrowerName = split.user.displayName || split.user.email;
-    const lenderName = req.user!.displayName || req.user!.email;
+    const lenderName = split.expense.paidBy.displayName || split.expense.paidBy.email;
 
     await prisma.notification.create({
       data: {
