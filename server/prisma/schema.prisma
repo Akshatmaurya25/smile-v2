@@ -24,6 +24,7 @@ model User {
 
   // Relations
   expenses        Expense[]        @relation("PaidBy")
+  incomes         Income[]
   categories      Category[]
   friendships     Friendship[]     @relation("User")
   friendOf        Friendship[]     @relation("Friend")
@@ -47,6 +48,24 @@ model RefreshToken {
 
   @@index([token])
   @@index([userId])
+}
+
+// Income model - separate from expenses for proper tracking
+model Income {
+  id          String   @id @default(uuid())
+  amount      Decimal  @db.Decimal(12, 2)
+  currency    String   @default("INR")
+  description String
+  source      String?  // e.g., "Salary", "Freelance", "Investment", "Gift", "Other"
+  date        DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
 }
 
 // Category for expenses - includes default and user-created categories

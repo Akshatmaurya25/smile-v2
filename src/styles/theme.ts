@@ -7,14 +7,18 @@ export const colors = {
   card: '#242424',
   cardHover: '#2E2E2E',
   border: '#333333',
+  glass: 'rgba(30, 30, 30, 0.6)',
 
   // Neon accents
   primary: '#00FF88', // Neon green - main actions
   primaryDim: '#00CC6A',
+  primaryGlow: 'rgba(0, 255, 136, 0.3)',
   secondary: '#00D4FF', // Neon cyan - secondary info
   secondaryDim: '#00A8CC',
+  secondaryGlow: 'rgba(0, 212, 255, 0.3)',
   accent: '#FF00FF', // Neon magenta - highlights
   accentDim: '#CC00CC',
+  accentGlow: 'rgba(255, 0, 255, 0.3)',
   tertiary: '#FFD700', // Gold - warnings, income
 
   // Semantic colors

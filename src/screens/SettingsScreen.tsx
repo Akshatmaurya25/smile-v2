@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,127 +7,347 @@ import {
   TouchableOpacity,
   Switch,
   Linking,
+  Modal,
+  TextInput,
+  Platform,
+  Alert,
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '../styles';
+import { useSettingsStore, StatsPeriod, useAuthStore } from '../store';
+
+const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'yearly', label: 'Yearly' },
+];
+
+interface SettingRowProps {
+  icon: string;
+  iconColor: string;
+  iconBg: string;
+  label: string;
+  sublabel?: string;
+  value?: string;
+  valueColor?: string;
+  onPress?: () => void;
+  showChevron?: boolean;
+  rightElement?: React.ReactNode;
+  showBorder?: boolean;
+}
+
+const SettingRow: React.FC<SettingRowProps> = ({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  sublabel,
+  value,
+  valueColor = colors.primary,
+  onPress,
+  showChevron = true,
+  rightElement,
+  showBorder = true,
+}) => (
+  <TouchableOpacity
+    style={[styles.settingRow, !showBorder && styles.settingRowNoBorder]}
+    onPress={onPress}
+    disabled={!onPress}
+    activeOpacity={onPress ? 0.7 : 1}
+  >
+    <View style={styles.settingLeft}>
+      <View style={[styles.settingIcon, { backgroundColor: iconBg }]}>
+        <Text style={[styles.settingIconText, { color: iconColor }]}>{icon}</Text>
+      </View>
+      <View>
+        <Text style={styles.settingLabel}>{label}</Text>
+        {sublabel && <Text style={styles.settingSublabel}>{sublabel}</Text>}
+      </View>
+    </View>
+    {rightElement || (
+      <View style={styles.settingRight}>
+        {value && <Text style={[styles.settingValue, { color: valueColor }]}>{value}</Text>}
+        {showChevron && <Text style={styles.chevron}>›</Text>}
+      </View>
+    )}
+  </TouchableOpacity>
+);
 
 const SettingsScreen: React.FC = () => {
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(true);
+  const { logout } = useAuthStore();
+  const {
+    statsPeriod,
+    monthlyIncome,
+    notificationsEnabled,
+    setStatsPeriod,
+    setMonthlyIncome,
+    setNotificationsEnabled,
+  } = useSettingsStore();
 
-  const settingsSections = [
-    {
-      title: 'Preferences',
-      items: [
-        {
-          icon: '🔔',
-          label: 'Notifications',
-          type: 'toggle' as const,
-          value: notificationsEnabled,
-          onToggle: setNotificationsEnabled,
-        },
-        {
-          icon: '🌙',
-          label: 'Dark Mode',
-          type: 'toggle' as const,
-          value: darkMode,
-          onToggle: setDarkMode,
-        },
-      ],
-    },
-    {
-      title: 'About',
-      items: [
-        {
-          icon: '📄',
-          label: 'Terms of Service',
-          type: 'link' as const,
-          onPress: () => Linking.openURL('https://example.com/terms'),
-        },
-        {
-          icon: '🔒',
-          label: 'Privacy Policy',
-          type: 'link' as const,
-          onPress: () => Linking.openURL('https://example.com/privacy'),
-        },
-        {
-          icon: 'ℹ️',
-          label: 'App Version',
-          type: 'info' as const,
-          value: '1.0.0',
-        },
-      ],
-    },
-    {
-      title: 'Support',
-      items: [
-        {
-          icon: '❓',
-          label: 'Help & FAQ',
-          type: 'link' as const,
-          onPress: () => {},
-        },
-        {
-          icon: '📧',
-          label: 'Contact Support',
-          type: 'link' as const,
-          onPress: () => Linking.openURL('mailto:support@smile.app'),
-        },
-        {
-          icon: '⭐',
-          label: 'Rate App',
-          type: 'link' as const,
-          onPress: () => {},
-        },
-      ],
-    },
-  ];
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
+  const [biometricsEnabled, setBiometricsEnabled] = useState(true);
+  const [cloudBackupEnabled, setCloudBackupEnabled] = useState(false);
+
+  const handleSaveIncome = () => {
+    const income = parseFloat(incomeInput) || 0;
+    setMonthlyIncome(income);
+    setShowIncomeModal(false);
+  };
+
+  const formatCurrency = (amount: number) => {
+    if (amount === 0) return 'Not set';
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
+
+  const getPeriodLabel = () => {
+    return STATS_PERIODS.find((p) => p.value === statsPeriod)?.label || 'Monthly';
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>Settings</Text>
-
-      {settingsSections.map((section, sectionIndex) => (
-        <View key={sectionIndex} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-
-          {section.items.map((item, itemIndex) => (
-            <TouchableOpacity
-              key={itemIndex}
-              style={styles.settingItem}
-              onPress={item.type === 'link' ? item.onPress : undefined}
-              disabled={item.type !== 'link'}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingIcon}>{item.icon}</Text>
-                <Text style={styles.settingLabel}>{item.label}</Text>
-              </View>
-
-              {item.type === 'toggle' && (
-                <Switch
-                  value={item.value}
-                  onValueChange={item.onToggle}
-                  trackColor={{ false: colors.border, true: colors.primaryDim }}
-                  thumbColor={item.value ? colors.primary : colors.textSecondary}
-                />
-              )}
-
-              {item.type === 'link' && (
-                <Text style={styles.chevron}>›</Text>
-              )}
-
-              {item.type === 'info' && (
-                <Text style={styles.infoValue}>{item.value}</Text>
-              )}
-            </TouchableOpacity>
-          ))}
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.backButton}>
+            <Text style={styles.backIcon}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Settings</Text>
         </View>
-      ))}
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Made with ❤️ by Smile Team</Text>
+        <TouchableOpacity>
+          <Text style={styles.saveText}>SAVE</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Personalization Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PERSONALIZATION</Text>
+          <View style={[styles.glassCard, styles.greenCard]}>
+            <SettingRow
+              icon="💰"
+              iconColor={colors.primary}
+              iconBg="rgba(0, 255, 136, 0.1)"
+              label="Monthly Income"
+              sublabel="PRIMARY BUDGET BASE"
+              value={formatCurrency(monthlyIncome)}
+              onPress={() => {
+                setIncomeInput(monthlyIncome.toString());
+                setShowIncomeModal(true);
+              }}
+            />
+            <SettingRow
+              icon="📅"
+              iconColor={colors.secondary}
+              iconBg="rgba(0, 212, 255, 0.1)"
+              label="Stats Period"
+              sublabel="DEFAULT DASHBOARD VIEW"
+              value={getPeriodLabel()}
+              valueColor={colors.secondary}
+              onPress={() => setShowPeriodModal(true)}
+              showBorder={false}
+            />
+          </View>
+        </View>
+
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PREFERENCES</Text>
+          <View style={[styles.glassCard, styles.whiteCard]}>
+            <SettingRow
+              icon="🔔"
+              iconColor={colors.accent}
+              iconBg="rgba(255, 0, 255, 0.1)"
+              label="Push Notifications"
+              showChevron={false}
+              rightElement={
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.text}
+                  ios_backgroundColor={colors.border}
+                />
+              }
+            />
+            <SettingRow
+              icon="👆"
+              iconColor={colors.primary}
+              iconBg="rgba(0, 255, 136, 0.1)"
+              label="Face ID / Biometrics"
+              showChevron={false}
+              rightElement={
+                <Switch
+                  value={biometricsEnabled}
+                  onValueChange={setBiometricsEnabled}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.text}
+                  ios_backgroundColor={colors.border}
+                />
+              }
+            />
+            <SettingRow
+              icon="☁️"
+              iconColor={colors.error}
+              iconBg="rgba(255, 68, 68, 0.1)"
+              label="Cloud Backup"
+              showChevron={false}
+              showBorder={false}
+              rightElement={
+                <Switch
+                  value={cloudBackupEnabled}
+                  onValueChange={setCloudBackupEnabled}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.text}
+                  ios_backgroundColor={colors.border}
+                />
+              }
+            />
+          </View>
+        </View>
+
+        {/* About Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ABOUT</Text>
+          <View style={[styles.glassCard, styles.cyanCard]}>
+            <SettingRow
+              icon="📄"
+              iconColor={colors.secondary}
+              iconBg="rgba(0, 212, 255, 0.1)"
+              label="Terms of Service"
+              showChevron={false}
+              onPress={() => Linking.openURL('https://example.com/terms')}
+              rightElement={<Text style={styles.externalIcon}>↗</Text>}
+            />
+            <SettingRow
+              icon="🔒"
+              iconColor={colors.secondary}
+              iconBg="rgba(0, 212, 255, 0.1)"
+              label="Privacy Policy"
+              showChevron={false}
+              onPress={() => Linking.openURL('https://example.com/privacy')}
+              rightElement={<Text style={styles.externalIcon}>↗</Text>}
+            />
+            <SettingRow
+              icon="ℹ️"
+              iconColor={colors.secondary}
+              iconBg="rgba(0, 212, 255, 0.1)"
+              label="App Version"
+              sublabel="BUILD 2.4.0 (NEON STABLE)"
+              showChevron={false}
+              showBorder={false}
+            />
+          </View>
+        </View>
+
+        {/* Sign Out Button */}
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Text style={styles.signOutText}>SIGN OUT</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Stats Period Modal */}
+      <Modal
+        visible={showPeriodModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPeriodModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Stats Period</Text>
+              <TouchableOpacity onPress={() => setShowPeriodModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {STATS_PERIODS.map((period) => (
+              <TouchableOpacity
+                key={period.value}
+                style={[
+                  styles.periodOption,
+                  statsPeriod === period.value && styles.periodOptionSelected,
+                ]}
+                onPress={() => {
+                  setStatsPeriod(period.value);
+                  setShowPeriodModal(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.periodLabel,
+                    statsPeriod === period.value && styles.periodLabelSelected,
+                  ]}
+                >
+                  {period.label}
+                </Text>
+                {statsPeriod === period.value && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Income Modal */}
+      <Modal
+        visible={showIncomeModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowIncomeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Monthly Income</Text>
+              <TouchableOpacity onPress={() => setShowIncomeModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.incomeDescription}>
+              Set your expected monthly income to track savings
+            </Text>
+
+            <View style={styles.incomeInputContainer}>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <TextInput
+                style={styles.incomeInput}
+                value={incomeInput}
+                onChangeText={setIncomeInput}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveIncome}>
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
@@ -136,69 +356,251 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  contentContainer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xxl,
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : spacing.xl,
+    paddingBottom: spacing.md,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: colors.textMuted,
+    marginLeft: -2,
   },
   title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
+    fontSize: 28,
+    fontWeight: '800',
     color: colors.text,
-    paddingVertical: spacing.lg,
+    letterSpacing: -0.5,
   },
+  saveText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 2,
+  },
+  // Scroll View
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100,
+  },
+  // Section
   section: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 3,
+    marginBottom: spacing.sm,
+    paddingHorizontal: 4,
+  },
+  // Glass Card
+  glassCard: {
+    backgroundColor: 'rgba(20, 20, 20, 0.7)',
+    borderRadius: 32,
+    borderWidth: 1,
     overflow: 'hidden',
   },
-  sectionTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  greenCard: {
+    borderColor: 'rgba(0, 255, 136, 0.4)',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
-  settingItem: {
+  whiteCard: {
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  cyanCard: {
+    borderColor: 'rgba(0, 212, 255, 0.4)',
+    shadowColor: colors.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  // Setting Row
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  settingRowNoBorder: {
+    borderBottomWidth: 0,
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingIconText: {
+    fontSize: 18,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  settingSublabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  settingValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  chevron: {
+    fontSize: 18,
+    color: colors.textMuted,
+  },
+  externalIcon: {
+    fontSize: 16,
+    color: colors.secondary,
+  },
+  // Sign Out Button
+  signOutButton: {
+    paddingVertical: spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.4)',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  signOutText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.error,
+    letterSpacing: 2,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  modalClose: {
+    fontSize: 24,
+    color: colors.textSecondary,
+  },
+  periodOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderRadius: 12,
+    marginBottom: spacing.xs,
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  periodOptionSelected: {
+    backgroundColor: 'rgba(0, 255, 136, 0.1)',
   },
-  settingIcon: {
-    fontSize: 20,
-    marginRight: spacing.md,
-  },
-  settingLabel: {
-    fontSize: typography.sizes.md,
+  periodLabel: {
+    fontSize: 15,
     color: colors.text,
   },
-  chevron: {
-    fontSize: 24,
-    color: colors.textMuted,
+  periodLabelSelected: {
+    color: colors.primary,
+    fontWeight: '700',
   },
-  infoValue: {
-    fontSize: typography.sizes.md,
+  checkmark: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  incomeDescription: {
+    fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: spacing.lg,
   },
-  footer: {
+  incomeInputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
   },
-  footerText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
+  currencySymbol: {
+    fontSize: 36,
+    color: colors.primary,
+    marginRight: spacing.sm,
+    fontWeight: '700',
+  },
+  incomeInput: {
+    fontSize: 48,
+    color: colors.text,
+    fontWeight: '800',
+    minWidth: 150,
+    textAlign: 'center',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  saveButtonText: {
+    color: colors.background,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

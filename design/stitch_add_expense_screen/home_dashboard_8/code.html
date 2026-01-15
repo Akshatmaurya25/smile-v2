@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smile - Neon Category Selector</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#00FF88",
+              cyan: "#00D4FF",
+              magenta: "#FF00FF",
+              red: "#FF4444",
+              gold: "#FFD700",
+              background: "#0D0D0D",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1.25rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      :root {
+        --glass-bg: rgba(30, 30, 30, 0.6);
+        --neon-green: #00FF88;
+        --neon-cyan: #00D4FF;
+        --neon-magenta: #FF00FF;
+        --neon-red: #FF4444;
+        --neon-gold: #FFD700;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0D0D0D;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .neon-border-green { border: 1px solid rgba(0, 255, 136, 0.3); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
+      .neon-border-cyan { border: 1px solid rgba(0, 212, 255, 0.3); box-shadow: 0 0 15px rgba(0, 212, 255, 0.1); }
+      .neon-border-magenta { border: 1px solid rgba(255, 0, 255, 0.3); box-shadow: 0 0 15px rgba(255, 0, 255, 0.1); }
+      .neon-border-red { border: 1px solid rgba(255, 68, 68, 0.3); box-shadow: 0 0 15px rgba(255, 68, 68, 0.1); }
+      .fab-glow {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), 0 0 50px rgba(0, 255, 136, 0.2);
+      }
+      .selected-category {
+        border: 2px solid var(--neon-green);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), inset 0 0 10px rgba(0, 255, 136, 0.2);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+            overflow: hidden;}
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-white min-h-screen pb-32 bg-background relative">
+<div class="opacity-20 pointer-events-none">
+<header class="px-6 pt-12 pb-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary via-cyan to-magenta">
+<div class="w-full h-full rounded-full bg-background flex items-center justify-center text-white font-bold text-lg">JD</div>
+</div>
+<div>
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.15em]">Good Morning</p>
+<h1 class="text-xl font-extrabold tracking-tight text-white">John Doe</h1>
+</div>
+</div>
+</header>
+<main class="px-6 space-y-8">
+<div class="flex gap-4 overflow-x-auto custom-scrollbar pb-2">
+<div class="flex-shrink-0 w-40 p-5 rounded-3xl glass-card neon-border-green">
+<p class="text-xl font-extrabold text-primary">₹50,000</p>
+</div>
+<div class="flex-shrink-0 w-40 p-5 rounded-3xl glass-card neon-border-red">
+<p class="text-xl font-extrabold text-red">₹32,500</p>
+</div>
+</div>
+<section class="glass-card neon-border-magenta p-6 rounded-[2.5rem] h-40"></section>
+</main>
+</div>
+<div class="fixed inset-0 bg-black/80 z-[110] backdrop-blur-sm"></div>
+<div class="fixed bottom-0 left-0 right-0 z-[120] bg-[#0D0D0D] rounded-t-[3rem] border-t border-white/10 flex flex-col max-h-[90vh]">
+<div class="w-full flex justify-center pt-4 pb-2">
+<div class="w-12 h-1.5 bg-zinc-800 rounded-full"></div>
+</div>
+<div class="px-8 pt-4 pb-10 overflow-y-auto custom-scrollbar">
+<header class="mb-8">
+<h2 class="text-2xl font-extrabold tracking-tight text-white">Select Category</h2>
+<p class="text-sm text-zinc-500 font-medium mt-1">Where did you spend your money?</p>
+</header>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 selected-category transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-primary font-light">restaurant</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Dining</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Food &amp; Drinks</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-cyan/30 transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-cyan/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-cyan font-light">commute</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Transport</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Cabs &amp; Metro</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-magenta/30 transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-magenta/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-magenta font-light">shopping_bag</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Shopping</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Apparel &amp; Gadgets</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-gold/30 transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-gold/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-gold font-light">theater_comedy</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Leisure</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Movies &amp; Games</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-red/30 transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-red/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-red font-light">medical_services</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Health</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Medicine &amp; Gym</span>
+</button>
+<button class="flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-zinc-400/30 transition-all duration-300">
+<div class="w-14 h-14 rounded-2xl bg-zinc-800 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-3xl text-zinc-400 font-light">grid_view</span>
+</div>
+<span class="text-sm font-bold text-white tracking-wide">Others</span>
+<span class="text-[10px] text-zinc-500 mt-0.5">Miscellaneous</span>
+</button>
+</div>
+<button class="w-full py-5 mt-10 rounded-2xl bg-primary text-background font-extrabold text-sm uppercase tracking-widest fab-glow active:scale-[0.98] transition-transform">
+                Confirm Selection
+            </button>
+</div>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t border-white/5 px-8 py-5 flex justify-between items-center z-[50]">
+<button class="flex flex-col items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-2xl font-variation-fill">home</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Home</span>
+</button>
+<div class="relative -top-10">
+<button class="w-16 h-16 rounded-full bg-primary text-background flex items-center justify-center fab-glow ring-4 ring-background">
+<span class="material-symbols-outlined text-3xl font-black">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Profile</span>
+</button>
+</nav>
+
+</body></html>

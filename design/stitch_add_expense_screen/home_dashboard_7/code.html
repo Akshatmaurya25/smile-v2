@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smile - Neon Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#00FF88",
+              cyan: "#00D4FF",
+              magenta: "#FF00FF",
+              red: "#FF4444",
+              background: "#0D0D0D",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1.25rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      :root {
+        --glass-bg: rgba(20, 20, 20, 0.7);
+        --neon-green: #00FF88;
+        --neon-cyan: #00D4FF;
+        --neon-magenta: #FF00FF;
+        --neon-red: #FF4444;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0D0D0D;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .neon-border-green { border: 1px solid rgba(0, 255, 136, 0.4); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
+      .neon-border-cyan { border: 1px solid rgba(0, 212, 255, 0.4); box-shadow: 0 0 15px rgba(0, 212, 255, 0.1); }
+      .neon-border-magenta { border: 1px solid rgba(255, 0, 255, 0.4); box-shadow: 0 0 15px rgba(255, 0, 255, 0.1); }
+      .neon-border-white { border: 1px solid rgba(255, 255, 255, 0.1); }
+      .fab-glow {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), 0 0 50px rgba(0, 255, 136, 0.2);
+      }
+      .toggle-checkbox:checked + .toggle-label {
+        @apply bg-primary;
+        box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+      }
+      .toggle-checkbox:checked + .toggle-label:after {
+        left: calc(100% - 0.25rem);
+        transform: translateX(-100%);
+      }
+      .toggle-label:after {
+        content: "";
+        position: absolute;
+        top: 0.25rem;
+        left: 0.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 99px;
+        background: white;
+        transition: all 0.3s ease;
+      }
+    </style>
+<style>
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-white min-h-screen pb-32">
+<header class="px-6 pt-14 pb-6 flex items-center justify-between sticky top-0 bg-[#0D0D0D]/90 backdrop-blur-xl z-50">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<h1 class="text-2xl font-extrabold tracking-tight">Settings</h1>
+</div>
+<button class="text-primary font-bold text-sm uppercase tracking-widest">Save</button>
+</header>
+<main class="px-6 space-y-8">
+<section class="space-y-4">
+<h2 class="px-1 text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">Personalization</h2>
+<div class="glass-card neon-border-green rounded-[2rem] overflow-hidden">
+<div class="p-5 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="font-bold text-sm">Monthly Income</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mt-0.5">Primary Budget Base</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-primary font-bold">₹50,000</span>
+<span class="material-symbols-outlined text-zinc-600 text-lg">chevron_right</span>
+</div>
+</div>
+<div class="p-5 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<div>
+<p class="font-bold text-sm">Stats Period</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mt-0.5">Default Dashboard View</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-cyan font-bold">Monthly</span>
+<span class="material-symbols-outlined text-zinc-600 text-lg">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<section class="space-y-4">
+<h2 class="px-1 text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">Preferences</h2>
+<div class="glass-card neon-border-white rounded-[2rem] overflow-hidden">
+<div class="p-5 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-magenta/10 border border-magenta/20 flex items-center justify-center text-magenta">
+<span class="material-symbols-outlined">notifications_active</span>
+</div>
+<p class="font-bold text-sm">Push Notifications</p>
+</div>
+<div class="relative inline-block w-12 h-7 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-0 h-0 opacity-0" id="toggle-1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-zinc-800 cursor-pointer relative transition-all duration-300" for="toggle-1"></label>
+</div>
+</div>
+<div class="p-5 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">fingerprint</span>
+</div>
+<p class="font-bold text-sm">Face ID / Biometrics</p>
+</div>
+<div class="relative inline-block w-12 h-7 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-0 h-0 opacity-0" id="toggle-2" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-zinc-800 cursor-pointer relative transition-all duration-300" for="toggle-2"></label>
+</div>
+</div>
+<div class="p-5 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-red/10 border border-red/20 flex items-center justify-center text-red">
+<span class="material-symbols-outlined">database</span>
+</div>
+<p class="font-bold text-sm">Cloud Backup</p>
+</div>
+<div class="relative inline-block w-12 h-7 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-0 h-0 opacity-0" id="toggle-3" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-zinc-800 cursor-pointer relative transition-all duration-300" for="toggle-3"></label>
+</div>
+</div>
+</div>
+</section>
+<section class="space-y-4">
+<h2 class="px-1 text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">About</h2>
+<div class="glass-card neon-border-cyan rounded-[2rem] overflow-hidden">
+<a class="p-5 flex items-center justify-between border-b border-white/5 active:bg-white/5 transition-colors" href="#">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined">description</span>
+</div>
+<p class="font-bold text-sm">Terms of Service</p>
+</div>
+<span class="material-symbols-outlined text-cyan text-lg">open_in_new</span>
+</a>
+<a class="p-5 flex items-center justify-between border-b border-white/5 active:bg-white/5 transition-colors" href="#">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined">policy</span>
+</div>
+<p class="font-bold text-sm">Privacy Policy</p>
+</div>
+<span class="material-symbols-outlined text-cyan text-lg">open_in_new</span>
+</a>
+<div class="p-5 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined">info</span>
+</div>
+<div>
+<p class="font-bold text-sm">App Version</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mt-0.5">Build 2.4.0 (Neon Stable)</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<button class="w-full py-5 rounded-3xl border border-red/40 bg-red/10 text-red font-bold text-sm uppercase tracking-widest active:scale-[0.98] transition-all">
+            Sign Out
+        </button>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t border-white/5 px-8 py-5 flex justify-between items-center z-[100]">
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">monitoring</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Stats</span>
+</button>
+<div class="relative -top-10">
+<button class="w-16 h-16 rounded-full bg-primary text-background flex items-center justify-center fab-glow ring-4 ring-background">
+<span class="material-symbols-outlined text-3xl font-black">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Wallet</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-2xl font-variation-fill">person</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Profile</span>
+</button>
+</nav>
+
+</body></html>

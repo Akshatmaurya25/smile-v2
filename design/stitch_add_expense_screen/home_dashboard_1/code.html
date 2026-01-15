@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smile - Modernized Neon Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#00FF88",
+              cyan: "#00D4FF",
+              magenta: "#FF00FF",
+              red: "#FF4444",
+              background: "#0D0D0D",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1.25rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      :root {
+        --glass-bg: rgba(30, 30, 30, 0.6);
+        --neon-green: #00FF88;
+        --neon-cyan: #00D4FF;
+        --neon-magenta: #FF00FF;
+        --neon-red: #FF4444;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0D0D0D;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .neon-border-green { border: 1px solid rgba(0, 255, 136, 0.3); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
+      .neon-border-cyan { border: 1px solid rgba(0, 212, 255, 0.3); box-shadow: 0 0 15px rgba(0, 212, 255, 0.1); }
+      .neon-border-magenta { border: 1px solid rgba(255, 0, 255, 0.3); box-shadow: 0 0 15px rgba(255, 0, 255, 0.1); }
+      .neon-border-red { border: 1px solid rgba(255, 68, 68, 0.3); box-shadow: 0 0 15px rgba(255, 68, 68, 0.1); }
+      .fab-glow {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), 0 0 50px rgba(0, 255, 136, 0.2);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .chart-grid {
+        background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 100% 25%;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-white min-h-screen pb-32">
+<header class="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#0D0D0D]/80 backdrop-blur-md z-50">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary via-cyan to-magenta">
+<div class="w-full h-full rounded-full bg-background flex items-center justify-center text-white font-bold text-lg">
+                    JD
+                </div>
+</div>
+<div>
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.15em]">Good Morning</p>
+<h1 class="text-xl font-extrabold tracking-tight">John Doe</h1>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400">
+<span class="material-symbols-outlined text-xl">search</span>
+</button>
+</div>
+</header>
+<main class="px-6 space-y-8">
+<div class="flex gap-4 overflow-x-auto custom-scrollbar pb-2">
+<div class="flex-shrink-0 w-40 p-5 rounded-3xl glass-card neon-border-green">
+<p class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Income</p>
+<p class="text-xl font-extrabold text-primary">₹50,000</p>
+<div class="mt-2 flex items-center text-[10px] text-primary/80">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="ml-1 font-bold">+12%</span>
+</div>
+</div>
+<div class="flex-shrink-0 w-40 p-5 rounded-3xl glass-card neon-border-red">
+<p class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Expenses</p>
+<p class="text-xl font-extrabold text-red">₹32,500</p>
+<div class="mt-2 flex items-center text-[10px] text-red/80">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span class="ml-1 font-bold">-5%</span>
+</div>
+</div>
+<div class="flex-shrink-0 w-40 p-5 rounded-3xl glass-card neon-border-cyan">
+<p class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Savings</p>
+<p class="text-xl font-extrabold text-cyan">₹17,500</p>
+<div class="mt-2 flex items-center text-[10px] text-cyan/80">
+<span class="material-symbols-outlined text-sm">target</span>
+<span class="ml-1 font-bold">85% Goal</span>
+</div>
+</div>
+</div>
+<section class="glass-card neon-border-magenta p-6 rounded-[2.5rem]">
+<div class="flex justify-between items-center mb-8">
+<h3 class="font-bold text-lg tracking-tight">Expense Breakdown</h3>
+<button class="text-xs font-bold text-magenta uppercase tracking-widest">Details</button>
+</div>
+<div class="flex items-center justify-between gap-6">
+<div class="relative w-36 h-36 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90 transform drop-shadow-[0_0_8px_rgba(255,0,255,0.3)]" viewBox="0 0 36 36">
+<path class="text-zinc-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"></path>
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="40, 100" stroke-linecap="round" stroke-width="3.5" style="filter: drop-shadow(0 0 3px #00FF88)"></path>
+<path class="text-cyan" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="25, 100" stroke-dashoffset="-40" stroke-linecap="round" stroke-width="3.5" style="filter: drop-shadow(0 0 3px #00D4FF)"></path>
+<path class="text-magenta" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="20, 100" stroke-dashoffset="-65" stroke-linecap="round" stroke-width="3.5" style="filter: drop-shadow(0 0 3px #FF00FF)"></path>
+<path class="text-zinc-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="15, 100" stroke-dashoffset="-85" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-[9px] text-zinc-500 font-black uppercase tracking-widest">Total</p>
+<p class="text-sm font-black">₹32.5k</p>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#00FF88]"></div>
+<span class="text-xs text-zinc-400 font-medium">Food</span>
+</div>
+<span class="text-xs font-bold text-primary">40%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-cyan shadow-[0_0_8px_#00D4FF]"></div>
+<span class="text-xs text-zinc-400 font-medium">Transport</span>
+</div>
+<span class="text-xs font-bold text-cyan">25%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-magenta shadow-[0_0_8px_#FF00FF]"></div>
+<span class="text-xs text-zinc-400 font-medium">Shopping</span>
+</div>
+<span class="text-xs font-bold text-magenta">20%</span>
+</div>
+</div>
+</div>
+</section>
+<section class="glass-card neon-border-cyan p-6 rounded-[2.5rem]">
+<h3 class="font-bold text-lg mb-6 tracking-tight">Monthly Trend</h3>
+<div class="flex h-44 gap-1 relative">
+<div class="flex flex-col justify-between text-[8px] font-bold text-zinc-600 uppercase pr-2 h-full py-1">
+<span>100k</span>
+<span>75k</span>
+<span>50k</span>
+<span>25k</span>
+<span>0</span>
+</div>
+<div class="flex-1 flex items-end justify-between gap-2 h-full chart-grid">
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[40%] transition-all border-t border-cyan/50"></div>
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[60%] transition-all border-t border-cyan/50"></div>
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[30%] transition-all border-t border-cyan/50"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/40 to-primary rounded-t-lg h-[85%] relative shadow-[0_-5px_15px_rgba(0,255,136,0.4)] border-t border-primary"></div>
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[50%] transition-all border-t border-cyan/50"></div>
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[75%] transition-all border-t border-cyan/50"></div>
+<div class="flex-1 bg-gradient-to-t from-cyan/10 to-cyan/40 rounded-t-lg h-[45%] transition-all border-t border-cyan/50"></div>
+</div>
+</div>
+<div class="flex justify-between mt-3 pl-8 text-[9px] text-zinc-500 font-bold uppercase tracking-widest">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</section>
+<section class="space-y-4 pb-12">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-bold text-lg tracking-tight">Recent Activity</h3>
+<button class="text-xs font-bold text-primary uppercase tracking-widest">View History</button>
+</div>
+<div class="space-y-4">
+<div class="glass-card neon-border-red p-4 rounded-3xl flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-red/10 border border-red/20 flex items-center justify-center text-red">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div>
+<p class="font-bold text-sm">Dominos Pizza</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase mt-0.5">Food • Today, 12:30 PM</p>
+</div>
+</div>
+<p class="font-bold text-red">-₹750.00</p>
+</div>
+<div class="glass-card neon-border-cyan p-4 rounded-3xl flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined">commute</span>
+</div>
+<div>
+<p class="font-bold text-sm">Uber Ride</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase mt-0.5">Transport • Yesterday</p>
+</div>
+</div>
+<p class="font-bold text-red">-₹420.00</p>
+</div>
+<div class="glass-card neon-border-green p-4 rounded-3xl flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">account_balance</span>
+</div>
+<div>
+<p class="font-bold text-sm">Salary Credit</p>
+<p class="text-[10px] text-zinc-500 font-medium uppercase mt-0.5">Income • 2 days ago</p>
+</div>
+</div>
+<p class="font-bold text-primary">+₹50,000</p>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t border-white/5 px-8 py-5 flex justify-between items-center z-[100]">
+<button class="flex flex-col items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-2xl font-variation-fill">home</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">monitoring</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Stats</span>
+</button>
+<div class="relative -top-10">
+<button class="w-16 h-16 rounded-full bg-primary text-background flex items-center justify-center fab-glow ring-4 ring-background">
+<span class="material-symbols-outlined text-3xl font-black">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Wallet</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Profile</span>
+</button>
+</nav>
+
+</body></html>

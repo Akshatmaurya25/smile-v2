@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smile - Neon Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#00FF88",
+              cyan: "#00D4FF",
+              magenta: "#FF00FF",
+              red: "#FF4444",
+              background: "#0D0D0D",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1.25rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      :root {
+        --glass-bg: rgba(30, 30, 30, 0.4);
+        --neon-green: #00FF88;
+        --neon-cyan: #00D4FF;
+        --neon-magenta: #FF00FF;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0D0D0D;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .logo-glow {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), inset 0 0 10px rgba(0, 255, 136, 0.2);
+        border: 2px solid var(--neon-green);
+      }
+      .google-btn-glow {
+        box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+      }
+      .neon-text-green { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+      .neon-text-magenta { text-shadow: 0 0 10px rgba(255, 0, 255, 0.5); }
+      .neon-text-cyan { text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-white min-h-screen flex flex-col justify-between overflow-hidden">
+<div class="fixed inset-0 pointer-events-none">
+<div class="absolute top-[-10%] right-[-10%] w-64 h-64 rounded-full bg-magenta/10 blur-[100px]"></div>
+<div class="absolute bottom-[-5%] left-[-5%] w-80 h-80 rounded-full bg-cyan/10 blur-[100px]"></div>
+</div>
+<main class="relative z-10 flex-1 flex flex-col items-center px-8 pt-20 pb-12 w-full max-w-md mx-auto">
+<div class="mb-12 flex flex-col items-center">
+<div class="w-20 h-20 rounded-3xl bg-background flex items-center justify-center logo-glow mb-6">
+<span class="material-symbols-outlined text-5xl text-primary font-variation-fill">sentiment_satisfied</span>
+</div>
+<h1 class="text-4xl font-extrabold tracking-tighter text-white mb-2">Smile</h1>
+<p class="text-zinc-500 font-medium tracking-wide">Finance that glows with you</p>
+</div>
+<div class="grid grid-cols-3 gap-4 w-full mb-16">
+<div class="glass-card p-4 rounded-3xl flex flex-col items-center border border-white/5">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary neon-text-green">analytics</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Track</span>
+</div>
+<div class="glass-card p-4 rounded-3xl flex flex-col items-center border border-white/5">
+<div class="w-10 h-10 rounded-full bg-magenta/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-magenta neon-text-magenta">call_split</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Split</span>
+</div>
+<div class="glass-card p-4 rounded-3xl flex flex-col items-center border border-white/5">
+<div class="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-cyan neon-text-cyan">insights</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Visualize</span>
+</div>
+</div>
+<div class="w-full space-y-4">
+<button class="w-full bg-white text-black h-14 rounded-2xl font-bold flex items-center justify-center gap-3 google-btn-glow active:scale-[0.98] transition-transform">
+<svg class="w-5 h-5" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+                Continue with Google
+            </button>
+<div class="pt-4 flex items-center gap-4">
+<div class="h-[1px] flex-1 bg-white/10"></div>
+<span class="text-xs font-bold text-zinc-600 uppercase tracking-widest">or</span>
+<div class="h-[1px] flex-1 bg-white/10"></div>
+</div>
+<div class="glass-card p-1.5 rounded-2xl flex gap-1 border border-white/5">
+<button class="flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider bg-white/10 text-white">Login</button>
+<button class="flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider text-zinc-400">Register</button>
+</div>
+</div>
+<p class="mt-auto text-[10px] text-center text-zinc-600 font-bold uppercase tracking-[0.2em] leading-relaxed">
+            By continuing, you agree to our<br/>
+<span class="text-zinc-400">Terms of Service</span> &amp; <span class="text-zinc-400">Privacy Policy</span>
+</p>
+</main>
+<div class="w-full flex justify-center pb-2">
+<div class="w-32 h-1 bg-white/20 rounded-full"></div>
+</div>
+
+</body></html>

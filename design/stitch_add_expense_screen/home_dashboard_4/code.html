@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Expense - Neon Finance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#00FF88",
+              cyan: "#00D4FF",
+              magenta: "#FF00FF",
+              red: "#FF4444",
+              background: "#0D0D0D",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1.25rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      :root {
+        --glass-bg: rgba(30, 30, 30, 0.4);
+        --neon-green: #00FF88;
+        --neon-cyan: #00D4FF;
+        --neon-magenta: #FF00FF;
+        --neon-red: #FF4444;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0D0D0D;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .neon-border-green { border: 1px solid rgba(0, 255, 136, 0.3); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
+      .neon-border-white { border: 1px solid rgba(255, 255, 255, 0.1); }
+      .fab-glow {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), 0 0 50px rgba(0, 255, 136, 0.2);
+      }
+      .amount-glow {
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+      }
+      .btn-glow {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+      }
+      input:focus { outline: none; }
+      .custom-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-white min-h-screen flex flex-col">
+<header class="px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 bg-[#0D0D0D]/90 backdrop-blur-md z-50">
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-white">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Add Expense</h1>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-white">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</header>
+<main class="px-6 flex-1 pb-40">
+<div class="py-10 text-center">
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-2">Enter Amount</p>
+<div class="flex items-center justify-center gap-2">
+<span class="text-3xl font-bold text-primary amount-glow">₹</span>
+<input class="bg-transparent border-none text-6xl font-black text-primary amount-glow text-center w-full focus:ring-0 p-0" type="number" value="0.00"/>
+</div>
+</div>
+<div class="space-y-4">
+<div class="glass-card neon-border-white rounded-3xl p-5">
+<p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-4">Select Category</p>
+<div class="grid grid-cols-4 gap-4">
+<button class="flex flex-col items-center gap-2">
+<div class="w-14 h-14 rounded-2xl bg-magenta/10 border border-magenta/30 flex items-center justify-center text-magenta shadow-[0_0_15px_rgba(255,0,255,0.2)]">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<span class="text-[10px] font-bold text-zinc-400">Shopping</span>
+</button>
+<button class="flex flex-col items-center gap-2">
+<div class="w-14 h-14 rounded-2xl bg-cyan/10 border border-cyan/30 flex items-center justify-center text-cyan shadow-[0_0_15px_rgba(0,212,255,0.2)]">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<span class="text-[10px] font-bold text-zinc-400">Food</span>
+</button>
+<button class="flex flex-col items-center gap-2">
+<div class="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(0,255,136,0.2)]">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<span class="text-[10px] font-bold text-zinc-400">Transport</span>
+</button>
+<button class="flex flex-col items-center gap-2">
+<div class="w-14 h-14 rounded-2xl bg-red/10 border border-red/30 flex items-center justify-center text-red shadow-[0_0_15px_rgba(255,68,68,0.2)]">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<span class="text-[10px] font-bold text-zinc-400">Bills</span>
+</button>
+</div>
+</div>
+<div class="glass-card neon-border-white rounded-3xl p-5 space-y-6">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-400">
+<span class="material-symbols-outlined text-xl">description</span>
+</div>
+<div class="flex-1">
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Description</p>
+<input class="w-full bg-transparent border-none p-0 text-sm font-semibold text-white placeholder:text-zinc-600 focus:ring-0" placeholder="What was this for?" type="text"/>
+</div>
+</div>
+<div class="h-[1px] bg-white/5 w-full"></div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-400">
+<span class="material-symbols-outlined text-xl">calendar_today</span>
+</div>
+<div class="flex-1">
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Date &amp; Time</p>
+<input class="w-full bg-transparent border-none p-0 text-sm font-semibold text-white focus:ring-0" type="text" value="Today, 10:30 AM"/>
+</div>
+</div>
+</div>
+<div class="glass-card neon-border-white rounded-3xl p-5 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+<span class="material-symbols-outlined text-xl">account_balance_wallet</span>
+</div>
+<div>
+<p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">From Account</p>
+<p class="text-sm font-bold">Personal Wallet</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-zinc-600">expand_more</span>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background to-transparent z-[110]">
+<button class="w-full py-5 bg-primary rounded-2xl text-background font-extrabold text-lg uppercase tracking-widest btn-glow">
+            Add Expense
+        </button>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t border-white/5 px-8 py-5 pb-8 flex justify-between items-center z-[100] pointer-events-none">
+<div class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">monitoring</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Stats</span>
+</div>
+<div class="relative -top-10 pointer-events-auto">
+<button class="w-16 h-16 rounded-full bg-primary text-background flex items-center justify-center fab-glow ring-4 ring-background">
+<span class="material-symbols-outlined text-3xl font-black">add</span>
+</button>
+</div>
+<div class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Wallet</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 text-zinc-500">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[9px] font-black uppercase tracking-tighter">Profile</span>
+</div>
+</nav>
+
+</body></html>

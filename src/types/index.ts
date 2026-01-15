@@ -49,6 +49,35 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'userId'>[] = [
   { name: 'Other', icon: '📦', isDefault: true },
 ];
 
+// Income types
+export type IncomeSource = 'Salary' | 'Freelance' | 'Investment' | 'Gift' | 'Refund' | 'Bonus' | 'Other';
+
+export interface Income {
+  id: string;
+  amount: number;
+  currency: Currency;
+  description: string;
+  source?: IncomeSource;
+  date: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIncomeInput {
+  amount: number;
+  currency?: Currency;
+  description: string;
+  source?: IncomeSource;
+  date?: string;
+}
+
+export interface IncomeStats {
+  totalIncome: number;
+  incomeBySource: { source: string; total: number; percentage: number }[];
+  monthlyIncome: { month: string; total: number }[];
+}
+
 // Expense types
 export interface Expense {
   id: string;
@@ -84,7 +113,7 @@ export interface CreateExpenseInput {
 }
 
 // Friend types
-export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
+export type FriendshipStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'pending' | 'accepted' | 'rejected';
 
 export interface Friendship {
   id: string;
@@ -101,6 +130,7 @@ export interface Friend {
   friendshipId: string;
   user: User;
   status: FriendshipStatus;
+  type?: 'sent' | 'received'; // For pending requests
 }
 
 // Notification types
@@ -118,15 +148,24 @@ export interface Notification {
 }
 
 // Stats types
+export interface WeeklyExpense {
+  day: string;
+  dayName: string;
+  total: number;
+}
+
 export interface ExpenseStats {
   totalIncome: number;
   totalExpenses: number;
   totalBorrowings: number;
-  expensesByCategory: { categoryId: string; categoryName: string; total: number; percentage: number }[];
+  expensesByCategory: { categoryId: string; categoryName: string; categoryIcon?: string; total: number; percentage: number }[];
+  weeklyExpenses: WeeklyExpense[];
   monthlyExpenses: { month: string; total: number }[];
 }
 
 // Borrowing types
+export type BorrowingType = 'owe' | 'lent';
+
 export interface Borrowing {
   id: string;
   fromUser: User;
@@ -137,6 +176,7 @@ export interface Borrowing {
   isPaid: boolean;
   confirmedByPayer: boolean;
   confirmedByPayee: boolean;
+  type: BorrowingType;
 }
 
 // API Response types

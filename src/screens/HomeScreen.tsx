@@ -7,28 +7,58 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  Dimensions,
 } from 'react-native';
-import { PieChart } from 'react-native-gifted-charts';
+import Svg, { Path, Circle, G, Defs, ClipPath, Rect } from 'react-native-svg';
 import { colors, spacing, borderRadius, typography } from '../styles';
-import { useAuthStore, useExpenseStore, useFriendStore } from '../store';
-import { expensesApi, friendsApi } from '../api';
+import { useAuthStore, useExpenseStore, useFriendStore, useSettingsStore } from '../store';
+import { expensesApi, friendsApi, incomeApi } from '../api';
+import type { Income } from '../types';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.42;
 
 const HomeScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { expenses, stats, isLoading, setExpenses, setStats, setLoading, setError, markFetched } = useExpenseStore();
   const { borrowings, setBorrowings } = useFriendStore();
+  const { statsPeriod, monthlyIncome } = useSettingsStore();
+  const [recentIncomes, setRecentIncomes] = React.useState<Income[]>([]);
+
+  const getApiPeriod = () => {
+    switch (statsPeriod) {
+      case 'daily':
+      case 'weekly':
+        return 'week';
+      case 'monthly':
+        return 'month';
+      default:
+        return 'month';
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsData, borrowingsData, expensesResponse] = await Promise.all([
-        expensesApi.getStats('month'),
+      const results = await Promise.allSettled([
+        expensesApi.getStats(getApiPeriod()),
         friendsApi.getBorrowings(),
         expensesApi.getExpenses({ limit: 20 }),
+        incomeApi.getIncomes({ limit: 10 }),
       ]);
-      setStats(statsData);
-      setBorrowings(borrowingsData);
-      setExpenses(expensesResponse.data || []);
+
+      if (results[0].status === 'fulfilled') {
+        setStats(results[0].value);
+      }
+      if (results[1].status === 'fulfilled') {
+        setBorrowings(results[1].value);
+      }
+      if (results[2].status === 'fulfilled') {
+        setExpenses(results[2].value.data || []);
+      }
+      if (results[3].status === 'fulfilled') {
+        setRecentIncomes(results[3].value.data || []);
+      }
       markFetched();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -39,17 +69,24 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, statsPeriod]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return 'GOOD MORNING';
+    if (hour < 17) return 'GOOD AFTERNOON';
+    return 'GOOD EVENING';
   };
 
   const formatCurrency = (amount: number) => {
+    if (amount >= 100000) {
+      return `₹${(amount / 1000).toFixed(1)}k`;
+    }
     return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  };
+
+  const formatFullCurrency = (amount: number) => {
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -59,32 +96,49 @@ const HomeScreen: React.FC = () => {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return `Today, ${date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase()}`;
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     } else {
-      return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
     }
   };
 
-  // Prepare pie chart data
-  const pieData = stats?.expensesByCategory.slice(0, 5).map((cat, index) => ({
-    value: cat.total,
-    color: ['#00FF88', '#00D4FF', '#FF00FF', '#FFD700', '#FF4444'][index % 5],
-    text: `${cat.percentage.toFixed(0)}%`,
-    label: cat.categoryName,
-  })) || [];
+  // Prepare chart data
+  const pieData = (stats?.expensesByCategory || []).slice(0, 4).map((cat, index) => ({
+    value: cat.total || 0,
+    percentage: cat.percentage || 0,
+    color: [colors.primary, colors.secondary, colors.accent, '#888888'][index % 4],
+    name: cat.categoryName || 'Other',
+  }));
 
-  // Prepare bar chart data
-  const barData = stats?.monthlyExpenses.map((month) => ({
-    value: month.total,
-    label: month.month.split('-')[1],
-    frontColor: colors.primary,
-  })) || [];
+  const barData = (stats?.monthlyExpenses || []).slice(-7).map((month, index, arr) => ({
+    value: month.total || 0,
+    label: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'][index % 7],
+    isHighlighted: index === Math.floor(arr.length / 2),
+  }));
 
-  const totalBorrowings = borrowings
-    .filter((b) => b.type === 'owe' && !b.isPaid)
-    .reduce((sum, b) => sum + b.amount, 0);
+  const totalExpenses = stats?.totalExpenses || 0;
+  const income = stats?.totalIncome || monthlyIncome || 0;
+  const savings = Math.max(0, income - totalExpenses);
+
+  // Calculate percentages for donut chart
+  const calculateStrokeDasharray = (percentage: number) => {
+    return `${percentage}, ${100 - percentage}`;
+  };
+
+  const getCategoryIcon = (categoryName: string) => {
+    const icons: { [key: string]: string } = {
+      'Food & Dining': 'restaurant',
+      'Transportation': 'commute',
+      'Shopping': 'shopping_bag',
+      'Entertainment': 'movie',
+      'Bills': 'receipt',
+      'Health': 'medical_services',
+      'Income': 'account_balance',
+    };
+    return icons[categoryName] || 'category';
+  };
 
   return (
     <ScrollView
@@ -98,177 +152,363 @@ const HomeScreen: React.FC = () => {
           colors={[colors.primary]}
         />
       }
+      showsVerticalScrollIndicator={false}
     >
-      {/* Header with greeting */}
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.userName}>
-            {user?.displayName || user?.username || 'User'}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.profileButton}>
-          {user?.profileImage ? (
-            <Image
-              source={{ uri: user.profileImage }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.profilePlaceholder}>
-              <Text style={styles.profileInitial}>
-                {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarContainer}>
+            {user?.profileImage ? (
+              <Image source={{ uri: user.profileImage }} style={styles.avatar} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {(user?.displayName || 'U').charAt(0).toUpperCase()}
               </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            )}
+          </View>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
+          </View>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerButton}>
+            <Text style={styles.headerButtonIcon}>🔔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton}>
+            <Text style={styles.headerButtonIcon}>🔍</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Main stats cards */}
-      <View style={styles.statsContainer}>
+      {/* Stats Cards */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.statsScrollContainer}
+      >
+        {/* Income Card */}
         <View style={[styles.statCard, styles.incomeCard]}>
-          <Text style={styles.statLabel}>Income</Text>
-          <Text style={[styles.statValue, styles.incomeValue]}>
-            {formatCurrency(stats?.totalIncome || 0)}
+          <Text style={styles.statLabel}>INCOME</Text>
+          <Text style={[styles.statValue, { color: colors.primary }]}>
+            {formatCurrency(income)}
           </Text>
-          <Text style={styles.statSubtext}>This month</Text>
+          <View style={styles.statTrend}>
+            <Text style={[styles.trendIcon, { color: colors.primary }]}>↗</Text>
+            <Text style={[styles.trendText, { color: colors.primary }]}>+12%</Text>
+          </View>
         </View>
 
+        {/* Expenses Card */}
         <View style={[styles.statCard, styles.expenseCard]}>
-          <Text style={styles.statLabel}>Expenses</Text>
-          <Text style={[styles.statValue, styles.expenseValue]}>
-            {formatCurrency(stats?.totalExpenses || 0)}
+          <Text style={styles.statLabel}>EXPENSES</Text>
+          <Text style={[styles.statValue, { color: colors.expense }]}>
+            {formatCurrency(totalExpenses)}
           </Text>
-          <Text style={styles.statSubtext}>This month</Text>
+          <View style={styles.statTrend}>
+            <Text style={[styles.trendIcon, { color: colors.expense }]}>↘</Text>
+            <Text style={[styles.trendText, { color: colors.expense }]}>-5%</Text>
+          </View>
         </View>
 
-        <View style={[styles.statCard, styles.borrowingCard]}>
-          <Text style={styles.statLabel}>Borrowings</Text>
-          <Text style={[styles.statValue, styles.borrowingValue]}>
-            {formatCurrency(totalBorrowings)}
+        {/* Savings Card */}
+        <View style={[styles.statCard, styles.savingsCard]}>
+          <Text style={styles.statLabel}>SAVINGS</Text>
+          <Text style={[styles.statValue, { color: colors.secondary }]}>
+            {formatCurrency(savings)}
           </Text>
-          <Text style={styles.statSubtext}>You owe</Text>
+          <View style={styles.statTrend}>
+            <Text style={[styles.trendIcon, { color: colors.secondary }]}>◎</Text>
+            <Text style={[styles.trendText, { color: colors.secondary }]}>85% Goal</Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Expense breakdown chart */}
-      <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Expense Breakdown</Text>
-        <Text style={styles.chartSubtitle}>This month by category</Text>
+      {/* Expense Breakdown */}
+      <View style={[styles.chartCard, styles.breakdownCard]}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartTitle}>Expense Breakdown</Text>
+          <TouchableOpacity>
+            <Text style={styles.chartAction}>DETAILS</Text>
+          </TouchableOpacity>
+        </View>
 
-        {pieData.length > 0 ? (
-          <View style={styles.pieChartContainer}>
-            <PieChart
-              data={pieData}
-              donut
-              radius={80}
-              innerRadius={50}
-              innerCircleColor={colors.card}
-              centerLabelComponent={() => (
-                <View style={styles.pieCenter}>
-                  <Text style={styles.pieCenterAmount}>
-                    {formatCurrency(stats?.totalExpenses || 0)}
-                  </Text>
-                  <Text style={styles.pieCenterLabel}>Total</Text>
-                </View>
+        <View style={styles.breakdownContent}>
+          {/* Donut Chart */}
+          <View style={styles.donutContainer}>
+            <Svg width={140} height={140} viewBox="0 0 36 36">
+              <Circle
+                cx="18"
+                cy="18"
+                r="15.9"
+                fill="none"
+                stroke="#333"
+                strokeWidth="3"
+              />
+              {pieData.length > 0 && (
+                <>
+                  <Circle
+                    cx="18"
+                    cy="18"
+                    r="15.9"
+                    fill="none"
+                    stroke={pieData[0]?.color || colors.primary}
+                    strokeWidth="3.5"
+                    strokeDasharray={calculateStrokeDasharray(pieData[0]?.percentage || 40)}
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                  />
+                  {pieData[1] && (
+                    <Circle
+                      cx="18"
+                      cy="18"
+                      r="15.9"
+                      fill="none"
+                      stroke={pieData[1].color}
+                      strokeWidth="3.5"
+                      strokeDasharray={calculateStrokeDasharray(pieData[1].percentage || 25)}
+                      strokeDashoffset={-(pieData[0]?.percentage || 40)}
+                      strokeLinecap="round"
+                      transform="rotate(-90 18 18)"
+                    />
+                  )}
+                  {pieData[2] && (
+                    <Circle
+                      cx="18"
+                      cy="18"
+                      r="15.9"
+                      fill="none"
+                      stroke={pieData[2].color}
+                      strokeWidth="3.5"
+                      strokeDasharray={calculateStrokeDasharray(pieData[2].percentage || 20)}
+                      strokeDashoffset={-((pieData[0]?.percentage || 40) + (pieData[1]?.percentage || 25))}
+                      strokeLinecap="round"
+                      transform="rotate(-90 18 18)"
+                    />
+                  )}
+                </>
               )}
-            />
-            <View style={styles.legendContainer}>
-              {pieData.map((item, index) => (
-                <View key={index} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                  <Text style={styles.legendText}>{item.label}</Text>
-                </View>
-              ))}
+            </Svg>
+            <View style={styles.donutCenter}>
+              <Text style={styles.donutLabel}>TOTAL</Text>
+              <Text style={styles.donutValue}>{formatCurrency(totalExpenses)}</Text>
             </View>
           </View>
-        ) : (
-          <View style={styles.emptyChart}>
-            <Text style={styles.emptyChartText}>No expenses this month</Text>
-          </View>
-        )}
-      </View>
 
-      {/* Monthly trend chart - Custom simple bar chart */}
-      <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Monthly Trend</Text>
-        <Text style={styles.chartSubtitle}>Your spending over time</Text>
-
-        {barData.length > 0 ? (
-          <View style={styles.barChartContainer}>
-            {(() => {
-              const maxVal = Math.max(...barData.map((d) => d.value), 1);
-              return barData.map((item, index) => (
-                <View key={index} style={styles.barItem}>
-                  <View style={styles.barWrapper}>
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: `${(item.value / maxVal) * 100}%`,
-                          backgroundColor: item.frontColor,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.barLabel}>{item.label}</Text>
+          {/* Legend */}
+          <View style={styles.legendContainer}>
+            {(pieData.length > 0 ? pieData : [
+              { name: 'Food', percentage: 40, color: colors.primary },
+              { name: 'Transport', percentage: 25, color: colors.secondary },
+              { name: 'Shopping', percentage: 20, color: colors.accent },
+            ]).map((item, index) => (
+              <View key={index} style={styles.legendItem}>
+                <View style={styles.legendLeft}>
+                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.legendText}>{item.name}</Text>
                 </View>
-              ));
-            })()}
-          </View>
-        ) : (
-          <View style={styles.emptyChart}>
-            <Text style={styles.emptyChartText}>No data available</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Quick actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>➕</Text>
-          <Text style={styles.actionText}>Add Expense</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>👥</Text>
-          <Text style={styles.actionText}>Split Bill</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>📈</Text>
-          <Text style={styles.actionText}>View Reports</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Recent Transactions - Show all expenses */}
-      <View style={styles.transactionsCard}>
-        <Text style={styles.chartTitle}>Recent Transactions</Text>
-        <Text style={styles.chartSubtitle}>All your expenses</Text>
-
-        {expenses.length > 0 ? (
-          <View style={styles.transactionsList}>
-            {expenses.map((expense) => (
-              <View key={expense.id} style={styles.transactionItem}>
-                <View style={styles.transactionLeft}>
-                  <View style={[styles.transactionIcon, { backgroundColor: expense.category?.color || colors.primary }]}>
-                    <Text style={styles.transactionEmoji}>{expense.category?.icon || '📦'}</Text>
-                  </View>
-                  <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionDescription}>{expense.description}</Text>
-                    <Text style={styles.transactionCategory}>{expense.category?.name || 'Uncategorized'}</Text>
-                  </View>
-                </View>
-                <View style={styles.transactionRight}>
-                  <Text style={styles.transactionAmount}>-{formatCurrency(Number(expense.amount))}</Text>
-                  <Text style={styles.transactionDate}>{formatDate(expense.createdAt)}</Text>
-                </View>
+                <Text style={[styles.legendPercent, { color: item.color }]}>
+                  {item.percentage.toFixed(0)}%
+                </Text>
               </View>
             ))}
           </View>
-        ) : (
-          <View style={styles.emptyTransactions}>
-            <Text style={styles.emptyTransactionsText}>No transactions yet</Text>
-            <Text style={styles.emptyTransactionsSubtext}>Add your first expense to get started</Text>
+        </View>
+      </View>
+
+      {/* Monthly Trend */}
+      <View style={[styles.chartCard, styles.trendCard]}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartTitle}>Weekly Spending</Text>
+          <TouchableOpacity>
+            <Text style={styles.chartAction}>THIS WEEK</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.barChartContainer}>
+          {/* Bars */}
+          <View style={styles.barsContainer}>
+            {(() => {
+              const weeklyData = stats?.weeklyExpenses || [];
+              const maxValue = Math.max(...weeklyData.map(d => d.total), 1000);
+              const barColors = [
+                colors.secondary,
+                colors.primary,
+                colors.accent,
+                colors.primary,
+                colors.secondary,
+                colors.accent,
+                colors.secondary,
+              ];
+              const highestIndex = weeklyData.reduce((maxIdx, curr, idx, arr) =>
+                curr.total > arr[maxIdx].total ? idx : maxIdx, 0);
+
+              return weeklyData.map((item, index) => {
+                const heightPercent = maxValue > 0
+                  ? Math.max(Math.min((item.total / maxValue) * 100, 100), 8)
+                  : 8;
+                const isHighlighted = index === highestIndex && item.total > 0;
+                return (
+                  <View key={index} style={styles.barWrapper}>
+                    <Text style={styles.barValue}>
+                      {item.total >= 1000 ? `₹${(item.total / 1000).toFixed(1)}k` : `₹${item.total.toFixed(0)}`}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.bar,
+                          {
+                            height: `${heightPercent}%`,
+                            backgroundColor: isHighlighted ? colors.primary : barColors[index],
+                            shadowColor: isHighlighted ? colors.primary : barColors[index],
+                            shadowOpacity: isHighlighted ? 0.6 : 0.3,
+                            shadowRadius: 8,
+                            shadowOffset: { width: 0, height: 0 },
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={[
+                      styles.barLabel,
+                      isHighlighted && { color: colors.primary }
+                    ]}>{item.dayName}</Text>
+                  </View>
+                );
+              });
+            })()}
           </View>
-        )}
+        </View>
+
+        {/* Week Summary */}
+        {(() => {
+          const weeklyData = stats?.weeklyExpenses || [];
+          const totals = weeklyData.map(d => d.total);
+          const highest = weeklyData.reduce((max, curr) => curr.total > max.total ? curr : max, { dayName: '-', total: 0 });
+          const lowest = weeklyData.filter(d => d.total > 0).reduce((min, curr) => curr.total < min.total ? curr : min, { dayName: '-', total: Infinity });
+          const sum = totals.reduce((a, b) => a + b, 0);
+          const average = weeklyData.length > 0 ? sum / weeklyData.length : 0;
+
+          return (
+            <View style={styles.weekSummary}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryItemLabel}>HIGHEST</Text>
+                <Text style={[styles.summaryItemValue, { color: colors.error }]}>
+                  {highest.dayName} {highest.total >= 1000 ? `₹${(highest.total / 1000).toFixed(1)}k` : `₹${highest.total.toFixed(0)}`}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryItemLabel}>LOWEST</Text>
+                <Text style={[styles.summaryItemValue, { color: colors.primary }]}>
+                  {lowest.total === Infinity ? '-' : `${lowest.dayName} ${lowest.total >= 1000 ? `₹${(lowest.total / 1000).toFixed(1)}k` : `₹${lowest.total.toFixed(0)}`}`}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryItemLabel}>AVERAGE</Text>
+                <Text style={[styles.summaryItemValue, { color: colors.secondary }]}>
+                  {average >= 1000 ? `₹${(average / 1000).toFixed(1)}k` : `₹${average.toFixed(0)}`}/day
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
+      </View>
+
+      {/* Recent Activity */}
+      <View style={styles.activitySection}>
+        <View style={styles.activityHeader}>
+          <Text style={styles.chartTitle}>Recent Activity</Text>
+          <TouchableOpacity>
+            <Text style={styles.chartAction}>VIEW HISTORY</Text>
+          </TouchableOpacity>
+        </View>
+
+        {(() => {
+          // Combine expenses and incomes into a single activity list
+          const activities = [
+            ...expenses.map((expense) => {
+              // Calculate user's actual portion: Total paid - What others owe (splits)
+              const totalPaid = Number(expense.amount);
+              const splitsTotal = (expense.splits || []).reduce(
+                (sum, split) => sum + Number(split.amount),
+                0
+              );
+              const userPortion = totalPaid - splitsTotal;
+
+              return {
+                id: expense.id,
+                description: expense.description,
+                amount: userPortion,
+                category: expense.category?.name || 'Other',
+                icon: expense.category?.icon || '💸',
+                createdAt: expense.createdAt,
+                type: 'expense' as const,
+              };
+            }),
+            ...recentIncomes.map((income) => ({
+              id: income.id,
+              description: income.description,
+              amount: Number(income.amount),
+              category: income.source || 'Income',
+              icon: '💰',
+              createdAt: income.createdAt,
+              type: 'income' as const,
+            })),
+          ]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+
+          if (activities.length === 0) {
+            return (
+              <View style={styles.emptyActivity}>
+                <Text style={styles.emptyText}>No recent transactions</Text>
+                <Text style={styles.emptySubtext}>Add your first expense to get started</Text>
+              </View>
+            );
+          }
+
+          return activities.map((activity, index) => {
+            const isIncome = activity.type === 'income';
+
+            return (
+              <View
+                key={activity.id || index}
+                style={[
+                  styles.activityCard,
+                  { borderColor: isIncome ? colors.primaryGlow : 'rgba(255, 68, 68, 0.3)' },
+                ]}
+              >
+                <View style={styles.activityLeft}>
+                  <View
+                    style={[
+                      styles.activityIcon,
+                      { backgroundColor: isIncome ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 68, 68, 0.1)' },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 20 }}>
+                      {activity.icon}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.activityTitle}>{activity.description}</Text>
+                    <Text style={styles.activitySubtitle}>
+                      {activity.category} • {formatDate(activity.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.activityAmount,
+                    { color: isIncome ? colors.primary : colors.expense },
+                  ]}
+                >
+                  {isIncome ? '+' : '-'}{formatFullCurrency(activity.amount)}
+                </Text>
+              </View>
+            );
+          });
+        })()}
       </View>
     </ScrollView>
   );
@@ -280,277 +520,340 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   contentContainer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
-  greeting: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  userName: {
-    fontSize: typography.sizes.xxl,
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    background: `linear-gradient(${colors.primary}, ${colors.secondary}, ${colors.accent})`,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarText: {
+    fontSize: 18,
     fontWeight: typography.weights.bold,
     color: colors.text,
   },
-  profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-  },
-  profilePlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInitial: {
-    fontSize: 18,
+  greeting: {
+    fontSize: 10,
     fontWeight: typography.weights.bold,
-    color: colors.background,
+    color: colors.textMuted,
+    letterSpacing: 2,
   },
-  statsContainer: {
+  userName: {
+    fontSize: 20,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+  },
+  headerRight: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  headerButtonIcon: {
+    fontSize: 18,
+  },
+  statsScrollContainer: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.xs,
+    width: CARD_WIDTH,
+    padding: spacing.lg,
+    borderRadius: 24,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
   },
   incomeCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.income,
+    borderColor: colors.primaryGlow,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
   expenseCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.expense,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    shadowColor: colors.expense,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
-  borrowingCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.borrowing,
+  savingsCard: {
+    borderColor: colors.secondaryGlow,
+    shadowColor: colors.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
   statLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+    color: colors.textMuted,
+    letterSpacing: 1.5,
     marginBottom: spacing.xs,
   },
   statValue: {
-    fontSize: typography.sizes.lg,
+    fontSize: 22,
     fontWeight: typography.weights.bold,
   },
-  incomeValue: {
-    color: colors.income,
+  statTrend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
   },
-  expenseValue: {
-    color: colors.expense,
+  trendIcon: {
+    fontSize: 12,
+    marginRight: 4,
   },
-  borrowingValue: {
-    color: colors.borrowing,
-  },
-  statSubtext: {
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
+  trendText: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
   },
   chartCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
     padding: spacing.lg,
-    marginBottom: spacing.md,
+    borderRadius: 32,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
   },
-  chartTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    marginBottom: spacing.xs,
+  breakdownCard: {
+    borderColor: colors.accentGlow,
   },
-  chartSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+  trendCard: {
+    borderColor: colors.secondaryGlow,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  pieChartContainer: {
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+  },
+  chartAction: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+    color: colors.accent,
+    letterSpacing: 1.5,
+  },
+  breakdownContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  pieCenter: {
+  donutContainer: {
+    width: 140,
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  donutCenter: {
+    position: 'absolute',
     alignItems: 'center',
   },
-  pieCenterAmount: {
-    fontSize: typography.sizes.md,
+  donutLabel: {
+    fontSize: 8,
+    fontWeight: typography.weights.bold,
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+  },
+  donutValue: {
+    fontSize: 14,
     fontWeight: typography.weights.bold,
     color: colors.text,
-  },
-  pieCenterLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
   },
   legendContainer: {
     flex: 1,
     marginLeft: spacing.lg,
+    gap: spacing.md,
   },
   legendItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+  },
+  legendLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: spacing.sm,
   },
   legendText: {
-    fontSize: typography.sizes.xs,
+    fontSize: 12,
     color: colors.textSecondary,
   },
+  legendPercent: {
+    fontSize: 12,
+    fontWeight: typography.weights.bold,
+  },
   barChartContainer: {
+    height: 160,
+    marginTop: spacing.md,
+  },
+  barsContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: 150,
-    paddingTop: spacing.md,
-  },
-  barItem: {
-    alignItems: 'center',
-    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xs,
   },
   barWrapper: {
-    height: 120,
-    width: 30,
+    flex: 1,
+    alignItems: 'center',
+  },
+  barValue: {
+    fontSize: 9,
+    fontWeight: typography.weights.bold,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  barTrack: {
+    width: '65%',
+    height: 100,
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(50, 50, 50, 0.3)',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   bar: {
     width: '100%',
-    borderRadius: 4,
-    minHeight: 4,
+    borderRadius: 8,
+    minHeight: 8,
   },
   barLabel: {
     fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  emptyChart: {
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyChartText: {
+    fontWeight: typography.weights.bold,
     color: colors.textMuted,
-    fontSize: typography.sizes.sm,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.xs,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionIcon: {
-    fontSize: 24,
-    marginBottom: spacing.xs,
-  },
-  actionText: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-  },
-  transactionsCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginTop: spacing.md,
-  },
-  transactionsList: {
     marginTop: spacing.sm,
   },
-  transactionItem: {
+  weekSummary: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
-  transactionLeft: {
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryItemLabel: {
+    fontSize: 8,
+    fontWeight: typography.weights.bold,
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  summaryItemValue: {
+    fontSize: 12,
+    fontWeight: typography.weights.bold,
+    marginTop: 4,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  activitySection: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  activityCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 24,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  activityLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
     flex: 1,
   },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+  activityIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
-    marginRight: spacing.md,
+    justifyContent: 'center',
   },
-  transactionEmoji: {
-    fontSize: 18,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionDescription: {
-    fontSize: typography.sizes.md,
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: typography.weights.bold,
     color: colors.text,
-    fontWeight: typography.weights.medium,
   },
-  transactionCategory: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  transactionRight: {
-    alignItems: 'flex-end',
-  },
-  transactionAmount: {
-    fontSize: typography.sizes.md,
-    color: colors.expense,
-    fontWeight: typography.weights.semibold,
-  },
-  transactionDate: {
-    fontSize: typography.sizes.xs,
+  activitySubtitle: {
+    fontSize: 10,
     color: colors.textMuted,
     marginTop: 2,
+    textTransform: 'uppercase',
   },
-  emptyTransactions: {
+  activityAmount: {
+    fontSize: 14,
+    fontWeight: typography.weights.bold,
+  },
+  emptyActivity: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
   },
-  emptyTransactionsText: {
-    fontSize: typography.sizes.md,
+  emptyText: {
+    fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
   },
-  emptyTransactionsSubtext: {
-    fontSize: typography.sizes.sm,
+  emptySubtext: {
+    fontSize: 12,
     color: colors.textMuted,
+    marginTop: spacing.xs,
   },
 });
 

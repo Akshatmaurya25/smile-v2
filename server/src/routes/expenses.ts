@@ -97,48 +97,94 @@ router.get('/stats', authenticate, async (req, res, next) => {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // Get total expenses
-    const totalExpenses = await prisma.expense.aggregate({
+    // Get total income from Income table (separate from expenses)
+    const totalIncomeResult = await prisma.income.aggregate({
       where: {
-        paidById: req.user!.id,
+        userId: req.user!.id,
         isDeleted: false,
         date: { gte: startDate },
       },
       _sum: { amount: true },
     });
 
-    // Get expenses by category
-    const expensesByCategory = await prisma.expense.groupBy({
-      by: ['categoryId'],
+    // Get all expenses paid by user in the period
+    const userExpenses = await prisma.expense.findMany({
       where: {
         paidById: req.user!.id,
         isDeleted: false,
         date: { gte: startDate },
       },
-      _sum: { amount: true },
+      include: {
+        splits: true,
+        category: true,
+      },
     });
 
-    // Get category details
-    const categoryIds = expensesByCategory.map((e) => e.categoryId);
-    const categories = await prisma.category.findMany({
-      where: { id: { in: categoryIds } },
+    // Calculate actual expense for user (total paid - amount to be recovered from splits)
+    // Your expense = What you paid - What others owe you
+    let totalExpenses = 0;
+    const categoryTotals: Map<string, { total: number; category: typeof userExpenses[0]['category'] }> = new Map();
+
+    for (const expense of userExpenses) {
+      const totalPaid = Number(expense.amount);
+      const splitsTotal = expense.splits.reduce((sum, split) => sum + Number(split.amount), 0);
+      // User's actual expense = Total paid - What others owe (splits)
+      const userPortion = totalPaid - splitsTotal;
+
+      totalExpenses += userPortion;
+
+      // Track by category
+      const existing = categoryTotals.get(expense.categoryId);
+      if (existing) {
+        existing.total += userPortion;
+      } else {
+        categoryTotals.set(expense.categoryId, { total: userPortion, category: expense.category });
+      }
+    }
+
+    // Also add expenses where user owes others (splits assigned to user)
+    const userSplits = await prisma.expenseSplit.findMany({
+      where: {
+        userId: req.user!.id,
+        expense: {
+          paidById: { not: req.user!.id },
+          isDeleted: false,
+          date: { gte: startDate },
+        },
+      },
+      include: {
+        expense: {
+          include: { category: true },
+        },
+      },
     });
 
-    const categoryMap = new Map(categories.map((c) => [c.id, c]));
-    const total = Number(totalExpenses._sum.amount) || 0;
+    for (const split of userSplits) {
+      const splitAmount = Number(split.amount);
+      totalExpenses += splitAmount;
 
-    const categoryStats = expensesByCategory.map((e) => {
-      const category = categoryMap.get(e.categoryId);
-      const categoryTotal = Number(e._sum.amount) || 0;
-      return {
-        categoryId: e.categoryId,
-        categoryName: category?.name || 'Unknown',
-        total: categoryTotal,
-        percentage: total > 0 ? (categoryTotal / total) * 100 : 0,
-      };
-    });
+      // Track by category
+      const existing = categoryTotals.get(split.expense.categoryId);
+      if (existing) {
+        existing.total += splitAmount;
+      } else {
+        categoryTotals.set(split.expense.categoryId, {
+          total: splitAmount,
+          category: split.expense.category
+        });
+      }
+    }
 
-    // Get borrowings (where user owes money)
+    // Build category stats
+    const categoryStats = Array.from(categoryTotals.entries()).map(([categoryId, data]) => ({
+      categoryId,
+      categoryName: data.category?.name || 'Unknown',
+      categoryIcon: data.category?.icon || '📁',
+      total: data.total,
+      percentage: totalExpenses > 0 ? (data.total / totalExpenses) * 100 : 0,
+    })).sort((a, b) => b.total - a.total);
+
+    // Get borrowings (where user owes money - unpaid)
     const borrowings = await prisma.expenseSplit.aggregate({
       where: {
         userId: req.user!.id,
@@ -148,26 +194,88 @@ router.get('/stats', authenticate, async (req, res, next) => {
       _sum: { amount: true },
     });
 
-    // Monthly expenses for chart
+    // Daily expenses for the last 7 days (for weekly chart)
+    // This needs to calculate user's portion correctly
+    const weekStart = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Get expenses paid by user in last 7 days
+    const weekExpenses = await prisma.expense.findMany({
+      where: {
+        paidById: req.user!.id,
+        isDeleted: false,
+        date: { gte: weekStart },
+      },
+      include: { splits: true },
+    });
+
+    // Get splits assigned to user in last 7 days
+    const weekSplits = await prisma.expenseSplit.findMany({
+      where: {
+        userId: req.user!.id,
+        expense: {
+          paidById: { not: req.user!.id },
+          isDeleted: false,
+          date: { gte: weekStart },
+        },
+      },
+      include: { expense: true },
+    });
+
+    // Calculate daily totals
+    const dailyTotals: Map<string, number> = new Map();
+
+    for (const expense of weekExpenses) {
+      const dateStr = expense.date.toISOString().split('T')[0];
+      const splitsTotal = expense.splits.reduce((sum, split) => sum + Number(split.amount), 0);
+      const userPortion = Number(expense.amount) - splitsTotal;
+      dailyTotals.set(dateStr, (dailyTotals.get(dateStr) || 0) + userPortion);
+    }
+
+    for (const split of weekSplits) {
+      const dateStr = split.expense.date.toISOString().split('T')[0];
+      dailyTotals.set(dateStr, (dailyTotals.get(dateStr) || 0) + Number(split.amount));
+    }
+
+    // Fill in missing days with 0
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeklyData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      weeklyData.push({
+        day: dateStr,
+        dayName: dayNames[date.getDay()],
+        total: dailyTotals.get(dateStr) || 0,
+      });
+    }
+
+    // Monthly expenses for chart (simplified - just user paid amounts minus splits)
     const monthlyExpenses = await prisma.$queryRaw<Array<{ month: string; total: number }>>`
       SELECT
-        TO_CHAR(date, 'YYYY-MM') as month,
-        SUM(amount)::float as total
-      FROM "Expense"
-      WHERE "paidById" = ${req.user!.id}
-        AND "isDeleted" = false
-        AND date >= ${startDate}
-      GROUP BY TO_CHAR(date, 'YYYY-MM')
+        TO_CHAR(e.date, 'YYYY-MM') as month,
+        SUM(e.amount - COALESCE(s.split_total, 0))::float as total
+      FROM "Expense" e
+      LEFT JOIN (
+        SELECT "expenseId", SUM(amount) as split_total
+        FROM "ExpenseSplit"
+        GROUP BY "expenseId"
+      ) s ON e.id = s."expenseId"
+      WHERE e."paidById" = ${req.user!.id}
+        AND e."isDeleted" = false
+        AND e.date >= ${startDate}
+      GROUP BY TO_CHAR(e.date, 'YYYY-MM')
       ORDER BY month ASC
     `;
 
     res.json({
       success: true,
       data: {
-        totalIncome: 0, // Income tracking not implemented yet
-        totalExpenses: total,
+        totalIncome: Number(totalIncomeResult._sum.amount) || 0,
+        totalExpenses,
         totalBorrowings: Number(borrowings._sum.amount) || 0,
         expensesByCategory: categoryStats,
+        weeklyExpenses: weeklyData,
         monthlyExpenses,
       },
     });

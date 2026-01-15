@@ -10,9 +10,9 @@ export type AuthStackParamList = {
 // Main tab navigator
 export type MainTabParamList = {
   Home: undefined;
-  Friends: undefined;
+  Transactions: undefined;
   AddExpense: undefined;
-  Profile: undefined;
+  Friends: undefined;
   Settings: undefined;
 };
 

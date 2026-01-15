@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import expenseRoutes from './routes/expenses.js';
+import incomeRoutes from './routes/income.js';
 import categoryRoutes from './routes/categories.js';
 import friendRoutes from './routes/friends.js';
 import borrowingRoutes from './routes/borrowings.js';
@@ -49,6 +50,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/income', incomeRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/borrowings', borrowingRoutes);

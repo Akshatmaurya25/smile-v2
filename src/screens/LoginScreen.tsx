@@ -11,29 +11,33 @@ import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import { SvgXml } from 'react-native-svg';
 import { colors, spacing, borderRadius, typography } from '../styles';
 import { useAuthStore } from '../store';
 import { authApi } from '../api';
+import { Logo } from '../components';
 
 // Web Client ID from Google Cloud Console
 const WEB_CLIENT_ID =
   '885524758632-lb169e569kh5mt7o9i26r67rolomp5a9.apps.googleusercontent.com';
 
-// Logo SVG (with dark background for login screen)
-const logoSvg = `<svg width="100" height="100" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="1000" height="1000" rx="200" fill="#1E1E1E"/>
-<circle cx="314" cy="328" r="93" fill="#FFFCFC"/>
-<path d="M203 590C321.736 794.349 630.361 853.15 774 590" stroke="#FFFCFC" stroke-width="90" stroke-linecap="round"/>
-<g clip-path="url(#clip0_1_2)">
-<circle cx="659.39" cy="373.007" r="89" transform="rotate(12.6607 659.39 373.007)" stroke="white" stroke-width="53"/>
-</g>
-<defs>
-<clipPath id="clip0_1_2">
-<rect width="231" height="105" fill="white" transform="translate(572.014 235) rotate(12.6607)"/>
-</clipPath>
-</defs>
-</svg>`;
+// Feature icons as simple components
+const TrackIcon = () => (
+  <View style={[styles.featureIconBg, { backgroundColor: 'rgba(0, 255, 136, 0.15)' }]}>
+    <Text style={[styles.featureIconText, { color: colors.primary }]}>|||</Text>
+  </View>
+);
+
+const SplitIcon = () => (
+  <View style={[styles.featureIconBg, { backgroundColor: 'rgba(255, 0, 255, 0.15)' }]}>
+    <Text style={[styles.featureIconText, { color: colors.accent }]}>Y</Text>
+  </View>
+);
+
+const VisualizeIcon = () => (
+  <View style={[styles.featureIconBg, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
+    <Text style={[styles.featureIconText, { color: colors.secondary }]}>~</Text>
+  </View>
+);
 
 const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -51,29 +55,17 @@ const LoginScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[Login] Starting Google Sign-In...');
 
       await GoogleSignin.hasPlayServices();
-      console.log('[Login] Play Services available');
-
       const userInfo = await GoogleSignin.signIn();
-      console.log('[Login] Google Sign-In successful:', userInfo.data?.user?.email);
 
       if (!userInfo.data?.idToken) {
-        console.error('[Login] No ID token received from Google');
         throw new Error('No ID token received from Google');
       }
-      console.log('[Login] ID Token received, length:', userInfo.data.idToken.length);
 
-      // Authenticate with backend
-      console.log('[Login] Sending token to backend...');
       const response = await authApi.googleAuth(userInfo.data.idToken);
-      console.log('[Login] Backend response:', response);
-
       login(response.user, response.tokens);
-      console.log('[Login] Login successful!');
     } catch (err: unknown) {
-      console.error('[Login] Error:', err);
       const error = err as { code?: string; message?: string };
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         setError('Sign in cancelled');
@@ -82,16 +74,14 @@ const LoginScreen: React.FC = () => {
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         setError('Play services not available');
       } else {
-        const errorMsg = error.message || 'Failed to sign in';
-        console.error('[Login] Setting error:', errorMsg);
-        setError(errorMsg);
+        setError(error.message || 'Failed to sign in');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Temporary: Skip login for demo purposes (remove in production)
+  // Demo login for testing
   const handleDemoLogin = () => {
     const demoUser = {
       id: 'demo-user-123',
@@ -113,35 +103,35 @@ const LoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Background gradient effect */}
-      <View style={styles.gradientOverlay} />
+      {/* Gradient overlay */}
+      <View style={styles.gradientTop} />
 
       {/* Logo and branding */}
       <View style={styles.brandingContainer}>
-        <View style={styles.logoContainer}>
-          <SvgXml xml={logoSvg} width={100} height={100} />
+        <View style={styles.logoWrapper}>
+          <Logo size={90} variant="withBackground" />
         </View>
         <Text style={styles.appName}>Smile</Text>
-        <Text style={styles.tagline}>Smart expense sharing made simple</Text>
+        <Text style={styles.tagline}>Finance that glows with you</Text>
       </View>
 
-      {/* Features preview */}
+      {/* Feature cards */}
       <View style={styles.featuresContainer}>
-        <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>💰</Text>
-          <Text style={styles.featureText}>Track expenses</Text>
+        <View style={styles.featureCard}>
+          <TrackIcon />
+          <Text style={styles.featureLabel}>TRACK</Text>
         </View>
-        <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>👥</Text>
-          <Text style={styles.featureText}>Split bills</Text>
+        <View style={styles.featureCard}>
+          <SplitIcon />
+          <Text style={styles.featureLabel}>SPLIT</Text>
         </View>
-        <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>📊</Text>
-          <Text style={styles.featureText}>Visualize spending</Text>
+        <View style={styles.featureCard}>
+          <VisualizeIcon />
+          <Text style={styles.featureLabel}>VISUALIZE</Text>
         </View>
       </View>
 
-      {/* Sign in button */}
+      {/* Auth buttons */}
       <View style={styles.authContainer}>
         {error && (
           <View style={styles.errorContainer}>
@@ -149,11 +139,12 @@ const LoginScreen: React.FC = () => {
           </View>
         )}
 
+        {/* Google Sign-In Button */}
         <TouchableOpacity
           style={styles.googleButton}
           onPress={handleGoogleSignIn}
           disabled={loading}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
           {loading ? (
             <ActivityIndicator color={colors.background} size="small" />
@@ -168,17 +159,37 @@ const LoginScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
-        {/* Demo button - remove in production */}
-        <TouchableOpacity
-          style={styles.demoButton}
-          onPress={handleDemoLogin}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.demoButtonText}>Try Demo (Skip Login)</Text>
-        </TouchableOpacity>
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
+        {/* Demo buttons */}
+        <View style={styles.demoButtonsRow}>
+          <TouchableOpacity
+            style={[styles.secondaryButton, styles.activeButton]}
+            onPress={handleDemoLogin}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryButtonText}>LOGIN</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+              REGISTER
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Terms */}
         <Text style={styles.disclaimer}>
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          BY CONTINUING, YOU AGREE TO OUR{'\n'}
+          <Text style={styles.link}>TERMS OF SERVICE</Text> &{' '}
+          <Text style={styles.link}>PRIVACY POLICY</Text>
         </Text>
       </View>
     </View>
@@ -189,33 +200,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: spacing.lg,
   },
-  gradientOverlay: {
+  gradientTop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: '50%',
-    backgroundColor: colors.surface,
-    opacity: 0.5,
+    height: '40%',
+    backgroundColor: 'rgba(30, 20, 40, 0.5)',
   },
   brandingContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingTop: spacing.xxl,
   },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: borderRadius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    overflow: 'hidden',
+  logoWrapper: {
+    width: 110,
+    height: 110,
+    borderRadius: 28,
     borderWidth: 2,
     borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
@@ -223,33 +231,53 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   appName: {
-    fontSize: typography.sizes.display,
+    fontSize: 40,
     fontWeight: typography.weights.bold,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginTop: spacing.lg,
   },
   tagline: {
     fontSize: typography.sizes.lg,
     color: colors.textSecondary,
-    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   featuresContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing.xl,
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  featureItem: {
+  featureCard: {
+    width: 100,
+    height: 100,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  featureIcon: {
-    fontSize: 32,
-    marginBottom: spacing.xs,
+  featureIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  featureText: {
-    fontSize: typography.sizes.sm,
+  featureIconText: {
+    fontSize: 20,
+    fontWeight: typography.weights.bold,
+  },
+  featureLabel: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
     color: colors.textSecondary,
+    letterSpacing: 1,
   },
   authContainer: {
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
   },
   errorContainer: {
@@ -268,12 +296,15 @@ const styles = StyleSheet.create({
   googleButton: {
     backgroundColor: colors.text,
     borderRadius: borderRadius.full,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    shadowColor: colors.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
   googleIcon: {
     width: 20,
@@ -285,28 +316,54 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
   },
-  demoButton: {
-    backgroundColor: 'transparent',
-    borderRadius: borderRadius.full,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    marginVertical: spacing.lg,
   },
-  demoButtonText: {
-    color: colors.primary,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.medium,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.sm,
+    marginHorizontal: spacing.md,
+  },
+  demoButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  activeButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.textSecondary,
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    letterSpacing: 1,
   },
   disclaimer: {
-    fontSize: typography.sizes.xs,
+    fontSize: 10,
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
+    marginTop: spacing.xl,
+    letterSpacing: 0.5,
+  },
+  link: {
+    color: colors.secondary,
   },
 });
 

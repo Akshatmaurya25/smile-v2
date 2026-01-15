@@ -5,7 +5,10 @@
       "Bash(npm uninstall:*)",
       "Bash(npm start:*)",
       "Bash(keytool:*)",
-      "Bash(./gradlew clean)"
+      "Bash(./gradlew clean)",
+      "Bash(C:UsersakshaAppDataLocalAndroidSdkemulatoremulator -list-avds)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma generate:*)"
     ]
   }
 }

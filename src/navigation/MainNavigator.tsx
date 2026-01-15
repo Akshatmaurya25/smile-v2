@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   HomeScreen,
-  FriendsScreen,
+  TransactionsScreen,
   AddExpenseScreen,
-  ProfileScreen,
+  FriendsScreen,
   SettingsScreen,
 } from '../screens';
 import { colors, spacing, borderRadius } from '../styles';
@@ -21,7 +21,12 @@ interface TabIconProps {
 
 const TabIcon: React.FC<TabIconProps> = ({ focused, icon, label }) => (
   <View style={styles.tabIconContainer}>
-    <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
+    <Text style={[
+      styles.tabIcon,
+      { color: focused ? colors.primary : colors.textMuted }
+    ]}>
+      {icon}
+    </Text>
     <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
   </View>
 );
@@ -31,9 +36,11 @@ interface AddButtonProps {
 }
 
 const AddButton: React.FC<AddButtonProps> = ({ onPress }) => (
-  <TouchableOpacity style={styles.addButton} onPress={onPress} activeOpacity={0.8}>
-    <Text style={styles.addButtonIcon}>+</Text>
-  </TouchableOpacity>
+  <View style={styles.fabContainer}>
+    <TouchableOpacity style={styles.addButton} onPress={onPress} activeOpacity={0.8}>
+      <Text style={styles.addButtonIcon}>+</Text>
+    </TouchableOpacity>
+  </View>
 );
 
 const MainNavigator: React.FC = () => {
@@ -50,16 +57,16 @@ const MainNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="🏠" label="Home" />
+            <TabIcon focused={focused} icon="⌂" label="HOME" />
           ),
         }}
       />
       <Tab.Screen
-        name="Friends"
-        component={FriendsScreen}
+        name="Transactions"
+        component={TransactionsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="👥" label="Friends" />
+            <TabIcon focused={focused} icon="↔" label="HISTORY" />
           ),
         }}
       />
@@ -81,11 +88,11 @@ const MainNavigator: React.FC = () => {
         })}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Friends"
+        component={FriendsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="👤" label="Profile" />
+            <TabIcon focused={focused} icon="⋯" label="SOCIAL" />
           ),
         }}
       />
@@ -94,7 +101,7 @@ const MainNavigator: React.FC = () => {
         component={SettingsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="⚙️" label="Settings" />
+            <TabIcon focused={focused} icon="☰" label="MORE" />
           ),
         }}
       />
@@ -104,31 +111,41 @@ const MainNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(13, 13, 13, 0.9)',
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    height: 80,
-    paddingBottom: spacing.md,
-    paddingTop: spacing.sm,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    height: Platform.OS === 'ios' ? 85 : 70,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingTop: 12,
+    paddingHorizontal: 16,
   },
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 50,
+    gap: 4,
   },
   tabIcon: {
-    fontSize: 24,
-    marginBottom: 2,
-    opacity: 0.5,
+    fontSize: 22,
   },
   tabIconFocused: {
-    opacity: 1,
+    // No opacity change needed, we use color
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: '800',
     color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: -0.3,
   },
   tabLabelFocused: {
     color: colors.primary,
+  },
+  fabContainer: {
+    position: 'relative',
+    top: -20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButton: {
     width: 56,
@@ -137,17 +154,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 12,
+    // Ring effect
+    borderWidth: 4,
+    borderColor: colors.background,
   },
   addButtonIcon: {
     fontSize: 32,
-    color: colors.textOnPrimary,
-    fontWeight: '300',
+    color: colors.background,
+    fontWeight: '800',
     marginTop: -2,
   },
 });

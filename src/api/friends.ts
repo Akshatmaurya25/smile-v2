@@ -1,6 +1,11 @@
 import apiClient from './client';
 import type { Friend, Borrowing, ApiResponse } from '../types';
 
+interface PendingRequestsResponse {
+  received: (Friend & { type: 'received' })[];
+  sent: (Friend & { type: 'sent' })[];
+}
+
 export const friendsApi = {
   // Get all friends
   getFriends: async (): Promise<Friend[]> => {
@@ -9,8 +14,8 @@ export const friendsApi = {
   },
 
   // Get pending friend requests
-  getPendingRequests: async (): Promise<Friend[]> => {
-    const response = await apiClient.get<ApiResponse<Friend[]>>(
+  getPendingRequests: async (): Promise<PendingRequestsResponse> => {
+    const response = await apiClient.get<ApiResponse<PendingRequestsResponse>>(
       '/friends/pending'
     );
     return response.data.data;
